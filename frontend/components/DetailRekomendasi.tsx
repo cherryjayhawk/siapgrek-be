@@ -3,10 +3,11 @@
 import Image from "next/image"
 import SensorCard from "./SensorCard"
 
+import { useRouter } from "next/navigation"
+
 type Props = {
   open: boolean
   onClose: () => void
-  setActiveMenu: (menu: string) => void
 }
 
 function getScore(value: number, type: string) {
@@ -33,7 +34,9 @@ function getScore(value: number, type: string) {
   return 0
 }
 
-export default function DetailRekomendasi({ open, onClose, setActiveMenu }: Props) {
+export default function DetailRekomendasi({ open, onClose }: Props) {
+  const router = useRouter()
+
   if (!open) return null
 
   const temp = 35
@@ -58,7 +61,7 @@ export default function DetailRekomendasi({ open, onClose, setActiveMenu }: Prop
 
   const handleTanyaAI = () => {
     localStorage.setItem("chatInsight", insightText)
-    setActiveMenu("chat")
+    router.push("/chat")
     onClose()
   }
 

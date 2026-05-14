@@ -1,43 +1,30 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 
-type Props = {
-  active: string
-  setActive: (menu: string) => void
-}
-
-export default function Sidebar({ active, setActive }: Props) {
-
+export default function Sidebar() {
   const [showLogout, setShowLogout] = useState(false)
+  const pathname = usePathname()
 
   const mainMenu = [
-    { name: 'dashboard', label: 'Dashboard',     icon: '/images/Dashboard.png'      },
-    { name: 'penyakit',  label: 'Penyakit',      icon: '/images/Penyakit.png'       },
-    { name: 'log',       label: 'Log Aktivitas', icon: '/images/Log Aktivitas.png'  },
-    { name: 'chat',      label: 'Chat',           icon: '/images/Chat.png'           },
+    { path: '/',         label: 'Dashboard',     icon: '/images/Dashboard.png'      },
+    { path: '/penyakit', label: 'Penyakit',      icon: '/images/Penyakit.png'       },
+    { path: '/log',      label: 'Log Aktivitas', icon: '/images/Log Aktivitas.png'  },
+    { path: '/chat',     label: 'Chat',          icon: '/images/Chat.png'           },
   ]
 
   const profileMenu = [
-    { name: 'profile',  label: 'Edit Profil',    icon: '/images/profile.svg'   },
-    { name: 'password', label: 'Ganti Password', icon: '/images/password.svg'  },
-    { name: 'faq',      label: 'Pusat Bantuan',  icon: '/images/FAQ.png'       },
-    { name: 'main',     label: 'Halaman Utama',  icon: '/images/main_page.svg' },
+    { path: '/profile',  label: 'Edit Profil',    icon: '/images/profile.svg'   },
+    { path: '/password', label: 'Ganti Password', icon: '/images/password.svg'  },
+    { path: '/faq',      label: 'Pusat Bantuan',  icon: '/images/FAQ.png'       },
+    { path: '/',         label: 'Halaman Utama',  icon: '/images/main_page.svg' },
   ]
 
-  const isProfile =
-    active === "myprofile" ||
-    active === "profile"   ||
-    active === "password"  ||
-    active === "faq"
-
+  const isProfile = pathname?.startsWith("/profile") || pathname?.startsWith("/password") || pathname?.startsWith("/faq")
   const menu = isProfile ? profileMenu : mainMenu
-
-  const handleClick = (name: string) => {
-    if (name === "main") { setActive("dashboard"); return; }
-    setActive(name)
-  }
 
   return (
     <>
@@ -45,11 +32,11 @@ export default function Sidebar({ active, setActive }: Props) {
       <aside className="hidden md:flex w-44 lg:w-52 xl:w-56 bg-white rounded-2xl lg:rounded-3xl p-3 lg:p-4 flex-col justify-between flex-shrink-0">
         <nav className="space-y-1 lg:space-y-2">
           {menu.map(item => {
-            const isActive = active === item.name
+            const isActive = pathname === item.path
             return (
-              <button
-                key={item.name}
-                onClick={() => handleClick(item.name)}
+              <Link
+                href={item.path}
+                key={item.path}
                 className={`
                   flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2 lg:py-2.5
                   rounded-xl w-full text-left font-medium transition text-xs lg:text-sm
@@ -59,7 +46,7 @@ export default function Sidebar({ active, setActive }: Props) {
                 <Image src={item.icon} alt={item.label} width={18} height={18}
                   className={isActive ? '' : 'grayscale opacity-40'} />
                 <span className="truncate">{item.label}</span>
-              </button>
+              </Link>
             )
           })}
         </nav>
@@ -79,24 +66,24 @@ export default function Sidebar({ active, setActive }: Props) {
       {!isProfile && (
         <div className="md:hidden fixed bottom-3 left-3 right-3 bg-white px-3 py-2.5 rounded-2xl shadow-lg flex items-center justify-evenly z-50">
           {mainMenu.map(item => {
-            const isActive = active === item.name
+            const isActive = pathname === item.path
             return isActive ? (
-              <button
-                key={item.name}
-                onClick={() => handleClick(item.name)}
+              <Link
+                href={item.path}
+                key={item.path}
                 className="flex items-center gap-1.5 bg-selected px-2.5 py-2 rounded-xl"
               >
                 <Image src={item.icon} alt={item.label} width={18} height={18} />
                 <span className="text-primary text-xs font-medium whitespace-nowrap">{item.label}</span>
-              </button>
+              </Link>
             ) : (
-              <button
-                key={item.name}
-                onClick={() => handleClick(item.name)}
+              <Link
+                href={item.path}
+                key={item.path}
                 className="bg-gray-100 p-2 rounded-xl"
               >
                 <Image src={item.icon} alt={item.label} width={18} height={18} className="grayscale opacity-40" />
-              </button>
+              </Link>
             )
           })}
         </div>

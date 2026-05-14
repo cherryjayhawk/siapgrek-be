@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   AreaChart, Area,
   LineChart, Line,
@@ -9,10 +10,8 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-import RangeGrafik from "../../components/RangeGrafik";
-import IntervalGrafik from "../../components/IntervalGrafik";
-
-type Props = { setActiveMenu: (menu: string) => void };
+import RangeGrafik from "../../../components/RangeGrafik";
+import IntervalGrafik from "../../../components/IntervalGrafik";
 
 // Replaced by real data fetch
 
@@ -187,11 +186,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 /* ── MAIN ────────────────────────────────── */
-export default function GrafikTanaman({ setActiveMenu }: Props) {
+export default function GrafikTanaman() {
 
   const [range, setRange]       = useState("last_24h");
   const [interval, setInterval] = useState("1 hour");
   const [chartData, setChartData] = useState<any[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -238,7 +238,7 @@ export default function GrafikTanaman({ setActiveMenu }: Props) {
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <h1 className="text-base lg:text-xl font-bold">Grafik Monitoring Sensor</h1>
         <button
-          onClick={() => setActiveMenu("dashboard")}
+          onClick={() => router.push("/")}
           className="px-3 py-1.5 lg:px-4 lg:py-2 border rounded-lg text-xs lg:text-sm"
         >
           ← Kembali

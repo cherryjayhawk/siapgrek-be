@@ -8,11 +8,10 @@ import RecommendationCard from "../../components/RecommendationCard"
 import ControlMenu from "../../components/ControlMenu"
 import SensorCard from "../../components/SensorCard"
 
-type Props = {
-  setActiveMenu: (menu: string) => void
-}
+import { useRouter } from "next/navigation"
 
-export default function Dashboard({ setActiveMenu }: Props) {
+export default function Dashboard() {
+  const router = useRouter()
 
   const [selectedSlave, setSelectedSlave] = useState("slave_1")
   const [data, setData] = useState<any>(null)
@@ -45,7 +44,7 @@ export default function Dashboard({ setActiveMenu }: Props) {
     return () => clearInterval(intv)
   }, [selectedSlave])
 
-  const handleLihatGrafik = () => setActiveMenu("grafik")
+  const handleLihatGrafik = () => router.push("/grafik")
   
   const currentSoil = data?.soil_sensors?.find((s: any) => s.slave_id === selectedSlave) || {}
 
@@ -63,7 +62,7 @@ export default function Dashboard({ setActiveMenu }: Props) {
            humidity: data?.env_humidity,
            lux: data?.light_lux
         }} />
-        <RecommendationCard setActiveMenu={setActiveMenu} />
+        <RecommendationCard />
         <div className="sm:col-span-2 xl:col-span-1">
           <ControlMenu />
         </div>

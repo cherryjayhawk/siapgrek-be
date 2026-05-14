@@ -4,11 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import DetailRekomendasi from "./DetailRekomendasi"
 
-type Props = {
-  setActiveMenu: (menu: string) => void
-}
-
-export default function RecommendationCard({ setActiveMenu }: Props) {
+export default function RecommendationCard() {
   const [open, setOpen] = useState(false)
 
   return (
@@ -41,7 +37,7 @@ export default function RecommendationCard({ setActiveMenu }: Props) {
         </div>
       </div>
 
-      <DetailRekomendasi open={open} onClose={() => setOpen(false)} setActiveMenu={setActiveMenu} />
+      <DetailRekomendasi open={open} onClose={() => setOpen(false)} />
     </>
   )
 }

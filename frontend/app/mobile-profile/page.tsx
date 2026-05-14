@@ -94,7 +94,7 @@ export default function MobileProfilePage() {
       )}
 
       {/* NAVBAR */}
-      <Navbar setActiveMenu={() => {}} activeMenu="profile" />
+      <Navbar />
 
       {/* PROFILE CARD */}
       <div className="mx-4 mt-5">

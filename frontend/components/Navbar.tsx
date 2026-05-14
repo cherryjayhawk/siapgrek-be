@@ -1,25 +1,19 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useUser } from "@/app/context/UserContext";
 import { useRouter } from "next/navigation";
 
-type Props = {
-  setActiveMenu: (menu: string) => void;
-  activeMenu: string;
-};
-
-export default function Navbar({ setActiveMenu, activeMenu }: Props) {
+export default function Navbar() {
   const { profileImage, username } = useUser();
   const router = useRouter();
-
-  const handleLogoClick = () => setActiveMenu("dashboard");
 
   const handleProfileClick = () => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       router.push("/mobile-profile");
     } else {
-      setActiveMenu("profile");
+      router.push("/profile");
     }
   };
 
@@ -27,12 +21,12 @@ export default function Navbar({ setActiveMenu, activeMenu }: Props) {
     <header className="w-full h-12 sm:h-14 lg:h-16 bg-white rounded-xl lg:rounded-2xl px-3 sm:px-4 lg:px-6 flex items-center justify-between flex-shrink-0">
 
       {/* LOGO — klik ke dashboard */}
-      <button onClick={handleLogoClick} className="flex items-center">
+      <Link href="/" className="flex items-center">
         <div className="relative w-24 sm:w-28 lg:w-36 h-8 sm:h-9 lg:h-10">
           <Image src="/images/Logo Navbar.png" alt="SIAPGrek" fill
             className="object-contain object-left" priority />
         </div>
-      </button>
+      </Link>
 
       {/* PROFIL */}
       <button
