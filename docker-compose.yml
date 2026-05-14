@@ -27,30 +27,6 @@ services:
       start_period: 10s
 
   # -------------------------------------------
-  # TimescaleDB (PostgreSQL + TimescaleDB ext.)
-  # -------------------------------------------
-  timescaledb:
-    image: timescale/timescaledb:latest-pg17
-    container_name: orchid-timescaledb
-    restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - timescaledb-data:/var/lib/postgresql/data
-    networks:
-      - orchid-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-
-  # -------------------------------------------
   # Redis (BullMQ Backend)
   # -------------------------------------------
   redis:
@@ -82,8 +58,6 @@ services:
     depends_on:
       mosquitto:
         condition: service_healthy
-      timescaledb:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
@@ -91,11 +65,11 @@ services:
       MQTT_USERNAME: ${MOSQUITTO_USERNAME}
       MQTT_PASSWORD: ${MOSQUITTO_PASSWORD}
       MQTT_TOPIC: orchid/+/telemetry
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      BATCH_INTERVAL_MS: "300000"
-      BUFFER_MAX_SIZE: "50000"
+      BATCH_INTERVAL_MS: "60000"
+      BUFFER_MAX_SIZE: "5000"
     networks:
       - orchid-net
 
@@ -111,14 +85,10 @@ services:
     ports:
       - "${ANALYTIC_PORT:-3002}:3000"
     depends_on:
-      timescaledb:
-        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      DB_HOST: timescaledb
-      DB_PORT: "5432"
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
+      DATABASE_URL: ${DATABASE_URL}
       DB_MAX_CONNS: "20"
       ANALYTIC_PORT: "3000"
     networks:
@@ -142,14 +112,12 @@ services:
     ports:
       - "${AUTH_PORT:-3001}:3000"
     depends_on:
-      timescaledb:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: http://localhost:3000
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
       AUTH_PORT: "3000"
     networks:
@@ -172,11 +140,8 @@ services:
     restart: unless-stopped
     ports:
       - "${KNOWLEDGE_PORT:-3004}:3000"
-    depends_on:
-      timescaledb:
-        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: ${DATABASE_URL}
       KNOWLEDGE_PORT: "3000"
       OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY}
     volumes:
@@ -242,7 +207,5 @@ networks:
 volumes:
   mosquitto-data:
     name: orchid-mosquitto-data
-  timescaledb-data:
-    name: orchid-timescaledb-data
   redis-data:
     name: orchid-redis-data
