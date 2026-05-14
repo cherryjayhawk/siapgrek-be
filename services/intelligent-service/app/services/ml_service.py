@@ -78,9 +78,9 @@ class DiseaseClassifier:
                 logger.error("TFLite model not found: %s", self._tflite_path)
                 return False
 
-            import tensorflow as tf  # type: ignore[import-untyped]
+            import ai_edge_litert.interpreter as tflite  # type: ignore[import-untyped]
 
-            self._interpreter = tf.lite.Interpreter(model_path=str(tflite_file))
+            self._interpreter = tflite.Interpreter(model_path=str(tflite_file))
             self._interpreter.allocate_tensors()
             self._input_details = self._interpreter.get_input_details()
             self._output_details = self._interpreter.get_output_details()

@@ -217,6 +217,8 @@ services:
       ANOMALY_MODEL_PATH: models/anomaly_detection.tflite
       SERVICE_PORT: "3003"
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
+      KNOWLEDGE_MCP_URL: http://knowledge-service:3000/mcp
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-fake_key_for_now}
     networks:
       - orchid-net
     healthcheck:

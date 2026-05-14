@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-
     "fastapi>=0.135.1",
     "networkx>=3.6.1",
     "numpy>=2.4.3",
@@ -16,13 +15,12 @@ dependencies = [
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.22",
-
     "scikit-fuzzy>=0.5.0",
     "scipy>=1.17.1",
     "sqlalchemy>=2.0.48",
-    "tensorflow>=2.20.0",
     "uvicorn[standard]>=0.41.0",
     "mcp>=1.9.0",
     "openai>=1.82.0",
     "httpx>=0.28.1",
+    "ai-edge-litert>=2.1.2",
 ]
