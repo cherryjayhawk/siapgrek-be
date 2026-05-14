@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -15,20 +14,12 @@ import (
 // with bounded connection limits for read-only operations.
 func Connect() (*pgxpool.Pool, error) {
 	dsn := os.Getenv("DATABASE_URL")
-	log.Println("DATABASE_URL:", dsn)
-	// dsn := ""
 	if dsn == "" {
-		// Build DSN from individual env vars
-		// host := getEnvOrDefault("DB_HOST", "ep-aged-sky-a16bdxx0-pooler.ap-southeast-1.aws.neon.tech")
-		// port := getEnvOrDefault("DB_PORT", "5432")
-		// user := getEnvOrDefault("DB_USER", "neondb_owner")
-		// password := getEnvOrDefault("DB_PASSWORD", "npg_qo6KVURudD5P")
-		// dbname := getEnvOrDefault("DB_NAME", "neondb")
 		host := getEnvOrDefault("DB_HOST", "timescaledb")
 		port := getEnvOrDefault("DB_PORT", "5432")
-		user := getEnvOrDefault("DB_USER", "orchid_admin")
-		password := getEnvOrDefault("DB_PASSWORD", "Orchid2026")
-		dbname := getEnvOrDefault("DB_NAME", "orchid_db")
+		user := getEnvOrDefault("DB_USER", "postgres")
+		password := os.Getenv("DB_PASSWORD")
+		dbname := getEnvOrDefault("DB_NAME", "postgres")
 		dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, dbname)
 	}
 

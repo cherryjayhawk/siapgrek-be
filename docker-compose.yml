@@ -86,8 +86,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - ./services/ingestion-service/.env
+    environment:
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      MQTT_USERNAME: ${MOSQUITTO_USERNAME}
+      MQTT_PASSWORD: ${MOSQUITTO_PASSWORD}
+      MQTT_TOPIC: orchid/+/telemetry
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      BATCH_INTERVAL_MS: "300000"
+      BUFFER_MAX_SIZE: "50000"
     networks:
       - orchid-net
 
@@ -168,8 +176,7 @@ services:
       timescaledb:
         condition: service_healthy
     environment:
-      # DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}?schema=public
-      DATABASE_URL: postgresql://neondb_owner:npg_pcrse93vmkCY@ep-mute-wildflower-a1s7gj8h-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}?schema=public
       KNOWLEDGE_PORT: "3000"
       OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY}
     volumes:
@@ -199,18 +206,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - ./services/intelligent-service/.env
-    # environment:
-    #   REDIS_HOST: orchid-redis
-    #   REDIS_PORT: "6379"
-    #   MQTT_BROKER_HOST: orchid-mosquitto
-    #   MQTT_BROKER_PORT: "1883"
-    #   MQTT_USERNAME: ${MOSQUITTO_USERNAME}
-    #   MQTT_PASSWORD: ${MOSQUITTO_PASSWORD}
-    #   DISEASE_MODEL_PATH: models/model_cnn_finetuned_V3.tflite
-    #   ANOMALY_MODEL_PATH: models/anomaly_detection.tflite
-    #   SERVICE_PORT: "3003"
+    environment:
+      REDIS_HOST: orchid-redis
+      REDIS_PORT: "6379"
+      MQTT_BROKER_HOST: orchid-mosquitto
+      MQTT_BROKER_PORT: "1883"
+      MQTT_USERNAME: ${MOSQUITTO_USERNAME}
+      MQTT_PASSWORD: ${MOSQUITTO_PASSWORD}
+      DISEASE_MODEL_PATH: models/model_cnn_finetuned_V3.tflite
+      ANOMALY_MODEL_PATH: models/anomaly_detection.tflite
+      SERVICE_PORT: "3003"
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
     networks:
       - orchid-net
     healthcheck:

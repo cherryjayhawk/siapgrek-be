@@ -13,7 +13,9 @@ app.use("*", logger());
 app.use(
     "*",
     cors({
-        origin: "*",
+        origin: process.env["TRUSTED_ORIGINS"]
+            ? process.env["TRUSTED_ORIGINS"].split(",")
+            : ["http://localhost:3000"],
         allowHeaders: ["Content-Type", "Authorization", "mcp-session-id", "Last-Event-ID", "mcp-protocol-version"],
         allowMethods: ["POST", "GET", "DELETE", "OPTIONS"],
         exposeHeaders: ["mcp-session-id", "mcp-protocol-version"],
@@ -45,9 +47,9 @@ app.all("/mcp", async (c) => {
 // ------------------------------------
 const port = Number(process.env["KNOWLEDGE_PORT"] ?? 3000);
 
+console.log(`📚 Knowledge service running on port ${port}`);
+
 export default {
     port,
     fetch: app.fetch,
 };
-
-console.log(`📚 Knowledge service running on port ${port}`);

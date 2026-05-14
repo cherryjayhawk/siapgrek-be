@@ -43,9 +43,9 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => {
 // ------------------------------------
 const port = Number(process.env["AUTH_PORT"] ?? 3000);
 
+console.log(`🔐 Auth service running on port ${port}`);
+
 export default {
     port,
     fetch: app.fetch,
 };
-
-console.log(`🔐 Auth service running on port ${port}`);
