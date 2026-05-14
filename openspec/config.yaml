@@ -1,0 +1,458 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+context: |
+  # Greenhouse Orchid IoT System
+
+  ## Overview
+
+  This project implements a distributed IoT architecture for greenhouse monitoring and control, designed as the primary contribution of a final thesis. The system integrates ESP32-based sensor nodes, RS485 Modbus sensors, MQTT messaging, TimescaleDB, machine learning services, anomaly detection, and an LLM-powered insight layer using RAG and MCP.
+
+  The design prioritizes reliability, scalability, fault isolation, and clear separation of concerns.
+
+  ---
+
+  ## System Architecture
+
+  ### High-Level Flow
+
+  ESP32 Nodes → MQTT Broker → Ingestion Service → TimescaleDB → Application Services → Dashboard / Insights
+
+  ### Architectural Style
+
+  * Event-driven architecture
+  * Service-oriented / microservice design
+  * Contract-driven data exchange
+  * Service-based control (Fuzzy logic computed on backend)
+
+  ---
+
+  ## Core Components
+
+  ### 1. Edge Layer (ESP32)
+
+  Responsibilities:
+
+  * Sensor acquisition (RS485 Modbus)
+  * Actuator control (misting pump, curtain) via backend MQTT instruction
+  * MQTT telemetry publishing
+  * MQTT command subscription
+
+  Characteristics:
+
+  * Lightweight hardware operations
+  * Depends on backend (Intelligent Service) for control logic and decision-making
+
+  ---
+
+  ### 2. MQTT Broker
+
+  Responsibilities:
+
+  * Message routing
+  * Decoupling producers and consumers
+
+  Protocols:
+
+  * MQTT TCP/IP
+
+  ---
+
+  ### 3. TimescaleDB (PostgreSQL)
+
+  Responsibilities:
+
+  * Time-series storage
+  * Analytical queries
+  * Historical data processing
+
+  Data Type:
+
+  * Sensor telemetry
+  * Derived metrics
+  * ML outputs
+
+  ---
+
+  ### 4. Application Services
+
+  #### a) Data Ingestion Service (Bun + TypeScript)
+  **Role**: High-throughput telemetry worker.
+  **Responsibilities**:
+  * Acts as an MQTT Client to subscribe to real-time telemetry from ESP32 edge nodes.
+  * Validates and cleans incoming JSON payloads.
+  * Ensures *Insert only* operations for high-speed writes without update contention.
+  * Performs insert into TimescaleDB for each telemetry data.
+  * Serves as a Publisher via BullMQ (workers), emitting an event every time a batch save occurs so that downstream services can react async.
+
+  #### b) Knowledge Service (Bun + TypeScript)
+  **Role**: Domain knowledge and context provider for the intelligent layer.
+  **Responsibilities**:
+  * Provides an API to upload user-defined `.md` files containing agricultural knowledge.
+  * Hosts MCP (Model Context Protocol) Servers, turning specific domain knowledge into accessible tools for LLMs:
+    * **Preference**: Powered exclusively by the uploaded agricultural knowledge `.md` files to provide context on specific user or greenhouse preferences.
+    * **Sensor History**: Queries historical read sensor data from the database to provide environmental context.
+    * **Disease Log**: Retrieves disease classification results that have been saved to the database.
+    * **Anomaly Record**: Retrieves detected anomalies that have been saved to the database.
+
+  #### c) Intelligent Service (FastAPI + Python 3.12 + uv)
+  **Role**: Core AI inference, natural language insight, and control logic engine.
+  **Responsibilities**:
+  * **Service-Level Fuzzy Logic**: Replaces edge-side logic. Evaluates real-time sensor states and publishes MQTT commands downward to the microcontroller actuators.
+  * **BullMQ Anomaly Detection**: Subscribes to the batch-save event emitted by the Data Ingestion service. Uses the ML model asynchronously to detect anomalies on the batched timeline.
+  * Exposes AI endpoints that are strictly driven by user-based actions (e.g., manual user interaction via the frontend):
+    * **Disease Classification API**: Analyzes uploaded plant photos using an integrated `tflite` model.
+    * **Anomaly Detection API**: Analyzes manually uploaded or selected sensor data using an integrated `tflite` model.
+  * Acts as an MCP Client (Insight) integrated with the OpenAI LLM via API. It queries all the MCP servers from the Knowledge Service for context to provide personalized, natural language insights to the user via API.
+
+  #### d) Analytic Service (Go + Fiber)
+  **Role**: High-performance read-replica/query engine.
+  **Responsibilities**:
+  * Provides blazing-fast API endpoints to query historical and aggregated sensor data (e.g., for drawing line charts on the frontend).
+  * Serves the most current/newest read data to power real-time dashboard visualizations without impacting ingestion performance.
+
+  #### e) Auth Service (Bun + TypeScript)
+  **Role**: Centralized identity and access management.
+  **Responsibilities**:
+  * Uses Better Auth JWT by default (email and password authentication).
+  * Issues and validates JWTs (access + refresh) for secure, stateless access.
+  * Handles token refresh logic for continuous sessions.
+  * Performs secure Session management backed by a database to allow for session revocation, tracking, and auditability.
+
+  #### f) API Gateway (Kong)
+  **Role**: Single entry point for all client requests.
+  **Responsibilities**:
+  * Routes requests to the appropriate service.
+  * Handles authentication and authorization.
+  * Provides rate limiting and request validation.
+  * Aggregates responses from multiple services.
+  
+
+  ---
+
+  ## MQTT Topic Design
+
+  ### Telemetry
+
+  ```
+  orchid/{device_id}/telemetry
+  ```
+
+  Example:
+
+  ```
+  orchid/node1/telemetry
+  ```
+
+  ---
+
+  ### Command
+
+  ```
+  orchid/{device_id}/command/{actuator}
+  ```
+
+  Examples:
+
+  ```
+  orchid/node1/command/misting_pump
+  orchid/node1/command/curtain
+  ```
+
+  Payload (Binary Command):
+
+  ```
+  1 → ON / OPEN
+  0 → OFF / CLOSE
+  ```
+
+  ---
+
+  ### State
+
+  ```
+  orchid/{device_id}/state
+  ```
+
+  ---
+
+  ## Telemetry Payload Schema
+
+  ```json
+  {
+    "soil": {
+      "temperature": 24.8,
+      "humidity": 71.2,
+      "ph": 6.0,
+      "ec": 1.5
+    },
+    "environment": {
+      "temperature": 27.3,
+      "humidity": 68.5
+    },
+    "light": {
+      "lux": 12450
+    },
+    "timestamp": "ISO8601"
+  }
+  ```
+
+  Design Rationale:
+
+  * Explicit sensor source separation
+  * Scalable structure
+  * Backend-friendly parsing
+
+  ---
+
+  ## Database Design (TimescaleDB / PostgreSQL)
+
+  The system leverages TimescaleDB as the core engine for high-performance time-series telemetry processing, alongside standard PostgreSQL tables for relational app data.
+
+  ### 1. Time-Series Tables (Hypertables)
+
+  #### a) `telemetry` (Telemetry)
+  Stores high-throughput continuous sensor readings from edge nodes.
+  * **Columns**:
+    * `timestamp` (TIMESTAMPTZ)
+    * `device_id` (TEXT)
+    * `soil_temperature` (FLOAT)
+    * `soil_humidity` (FLOAT)
+    * `env_temperature` (FLOAT)
+    * `env_humidity` (FLOAT)
+    * `light_lux` (FLOAT)
+  * **TimescaleDB Optimization**: Converted into a Hypertable partitioned by `timestamp` (e.g., 1-day chunks) to ensure blazing fast writes and efficient time-bucketed queries.
+  * **Constraints**: Composite Primary Key / Uniqueness (`device_id`, `timestamp`) ensures idempotent ingestion (no accidental duplicate logs).
+
+  #### b) `command_history` (MQTT Commands)
+  Stores the full audit log of all control messages sent to the actuators.
+  * **Columns**:
+    * `timestamp` (TIMESTAMPTZ)
+    * `device_id` (TEXT)
+    * `actuator` (TEXT) -> e.g., 'misting_pump', 'curtain'
+    * `command_value` (INTEGER) -> `1` (ON/OPEN) or `0` (OFF/CLOSE)
+    * `source` (TEXT) -> e.g., 'dashboard_manual', 'edge_fuzzy_logic', 'system_automated'
+  * **TimescaleDB Optimization**: Converted into a Hypertable partitioned by `timestamp`, allowing analysts and the RAG (MCP History) to easily query control occurrences over time.
+
+  ### 2. Relational Tables (Standard PostgreSQL)
+
+  #### a) AI & Intelligent Context
+  * **`disease_log`**: Tracks ML model classification runs.
+    * *Fields*: `id`, `timestamp`, `device_id`, `disease_name`, `confidence_score`, `image_reference`.
+  * **`anomaly_record`**: Tracks anomaly detections.
+    * *Fields*: `id`, `timestamp`, `device_id`, `sensor`, `recorded_value`, `threshold_value`, `resolved`.
+
+  #### b) Authentication (Better Auth)
+  * **`user` / `session`**: The core authentication tables managed natively by Better Auth for centralized JWT session identity.
+
+  ---
+
+  ## Data Processing Strategy
+
+  ### Sensor Read Interval + MQTT Publish Interval
+
+  * 10 seconds
+
+  ### Batch Save Interval
+
+  * 5 minutes
+
+  Rationale:
+
+  * Keeps hardware logic extremely minimal and synchronous.
+  * Batching DB insertions fully protects the system from IO bottlenecks.
+
+  ---
+
+  ## Reliability & Resilience Strategy
+
+  ### Edge Layer
+
+  * Hardware simply streams states and listens for commands.
+  * MQTT reconnection logic to ensure persistent streams.
+
+  ### Data Ingestion Service
+
+  * MQTT reconnect strategy
+  * 5-minute batch inserts to prevent TimescaleDB I/O bottlenecks
+  * Generates robust async events (BullMQ) so long-running anomaly scans don't block ingestion.
+
+  ### Intelligent / Knowledge Services
+  
+  * Graceful fallback if OpenAI LLM API is unreachable (continue to serve ML models without natural language context)
+
+  ### Database
+
+  * Idempotent writes
+  * Duplicate protection
+
+  ---
+
+  ## Failure Handling Model
+
+  | Scenario      | System Behavior                  |
+  | ------------- | -------------------------------- |
+  | MQTT Down     | Edge unable to receive actuation commands |
+  | Backend Down  | Automated actuation halts, sensors buffer |
+  | DB Down       | Ingestion retries or drops gracefully via cache |
+  | Service Crash | Fault isolated per service       |
+
+  ---
+
+  ## Design Decisions
+
+  | Decision               | Rationale                         |
+  | ---------------------- | --------------------------------- |
+  | Service-level Control  | Reduce edge compute dependency    |
+  | MQTT Event Pipeline    | Loose coupling & scalability      |
+  | BullMQ Workers         | Decouples batch saving from ML processing |
+  | TimescaleDB            | Time-series optimization          |
+  | Binary Command Payload | Low overhead for embedded parsing |
+
+  ---
+
+  ## Deployment Model (Dockerized Architecture)
+
+  Environment:
+
+  * VPS-based deployment
+  * 100% Containerized services managed via `docker-compose.yml`
+
+  Dockerized Components:
+
+  * **Infrastructure Containers**:
+    * `mqtt-broker`: Eclipse Mosquitto (Alpine image)
+    * `timescaledb`: PostgreSQL + TimescaleDB extension 
+    * `redis`: Used by BullMQ for pub/sub event queueing
+  * **Application Containers (Microservices)**:
+    * `ingestion-service`: Data Ingestion worker (Bun Alpine)
+    * `knowledge-service`: RAG/MCP server (Bun Alpine)
+    * `auth-service`: IAM provider (Bun Alpine)
+    * `analytic-service`: Query Engine (Go, compiled Alpine binary)
+    * `intelligent-service`: ML Inference & Insight (Python 3.12 / FastAPI with `uv`)
+
+  ---
+
+  ## Future Extensions
+
+  * Multi-node scaling
+  * Edge ML inference
+  * Adaptive control strategies
+  * Advanced analytics
+
+  ---
+
+  ## Thesis Contribution Focus
+
+  This work emphasizes:
+
+  * Distributed IoT architecture design
+  * Reliable telemetry pipeline
+  * Edge-cloud responsibility partitioning
+  * AI-assisted decision support
+
+  ---
+
+  ## Folder Structure (Monorepo)
+  
+  ``` text
+  .
+  ├── docker-compose.yml              # Global container orchestration
+  ├── .env                            # Global environment variables
+  ├── openspec/                       # Design documents and specs
+  │   └── config.yaml                 # OpenSpec central config
+  ├── edge/                           # ESP32 C++ source code
+  │   ├── src/                        # Modbus and MQTT logic
+  │   └── platformio.ini              # Hardware build config
+  ├── services/                       # Backend Microservices
+  │   ├── ingestion-service/          # Bun + TypeScript (MQTT worker)
+  │   │   ├── Dockerfile
+  │   │   └── src/
+  │   ├── knowledge-service/          # Bun + Hono (RAG / MCP server)
+  │   │   ├── Dockerfile
+  │   │   ├── docs/                   # Agricultural .md reference files
+  │   │   └── src/
+  │   ├── intelligent-service/        # Python 3.12 + FastAPI + uv
+  │   │   ├── Dockerfile
+  │   │   ├── pyproject.toml
+  │   │   ├── models/                 # Encoded .tflite weights
+  │   │   └── app/                   
+  │   ├── analytic-service/           # Go + Fiber (Query Engine)
+  │   │   ├── Dockerfile
+  │   │   ├── go.mod
+  │   │   └── main.go
+  │   └── auth-service/               # Bun + TypeScript (Better Auth DB)
+  │       ├── Dockerfile
+  │       └── src/
+  └── .agent/                         # Antigravity/Agent artifacts and scopes
+  ```
+
+  ---
+
+  ## Implementation Phases (OpenSpec Change Sets)
+
+  When initiating the `/opsx-new` workflow, adhere to this hierarchical rollout sequence to ensure dependencies are naturally resolved before higher-level services are built:
+
+  ### Phase 1: Foundation & Infrastructure
+  * Define and spin up the Docker Compose network (`mosquitto`, `timescaledb`, `redis`).
+  * Initialize the global monorepo structure and apply base `.env` configs.
+  * Establish the core relational schema (Auth, Disease, Anomaly models) via migrations.
+
+  ### Phase 2: Core Data Ingestion Pipeline
+  * Build the `ingestion-service` (Bun/TypeScript).
+  * Implement MQTT subscription, payload validation, and the 5-minute TimescaleDB batch insert engine.
+  * Connect BullMQ to emit processing events after successful batch saves.
+
+  ### Phase 3: Hardware Integration (Edge Layer)
+  * Flash the ESP32 logic (`edge/`).
+  * Establish Modbus sensor mapping and enforce the 10-second MQTT telemetry publish loop.
+
+  ### Phase 4: Identity & Fast Query (Analytic & Auth)
+  * Build the `auth-service` with Better Auth (JWTs, Session tracking).
+  * Build the `analytic-service` (Go/Fiber) to safely expose blazing-fast sensor data read endpoints.
+
+  ### Phase 5: Knowledge Context Base
+  * Build the `knowledge-service` (Bun/Hono).
+  * Setup markdown ingestion pipelines and expose raw data via MCP servers (Preference, Sensor History, Disease Log, Anomaly Record).
+
+  ### Phase 6: Core AI Intelligence layer
+  * Build the `intelligent-service` (Python/FastAPI).
+  * Integrate TensorFlow Lite `.tflite` endpoints for disease/anomaly classification.
+  * Hook up the background BullMQ Anomaly detection worker to consume `ingestion-service` batches asynchronously.
+  * Construct the Service-level Fuzzy Logic unit to actively publish MQTT command overrides down to the Edge actuators.
+
+  ### Phase 7: Natural Language Insights (RAG integration)
+  * Finalize the `intelligent-service` Insight MCP Client.
+  * Integrate the OpenAI API to consume the `knowledge-service` MCPs and generate comprehensive natural language agricultural intelligence for the end-user.
+
+# ============================================================================
+# Per-artifact Rules
+# ============================================================================
+rules:
+  proposal:
+    - Keep proposals concise and focused on the core problem being solved
+    - Always include a "Non-goals" section to define exact scope boundaries
+    - Include an "Impact" section describing affected areas of the distributed architecture
+    - Write proposals in English
+
+  specs:
+    - Delta specs must be highly specific: always define exact file paths for modifications
+    - Explicitly include API contracts (request/response schemas) for any new endpoints
+    - Detailed database schema changes must be provided if TimescaleDB/PostgreSQL is altered
+    - Consider cross-service dependencies (MQTT, REST, BullMQ) in every spec
+    
+  design:
+    - Include sequence flows for complex event-driven interactions
+    - Clearly explain trade-offs of architectural decisions (e.g. batch logic vs latency)
+    - Prioritize fault isolation, fallback logic, and edge-case handling in the design
+    - Always include performance/latency considerations for heavy operations (LLM/MCP inferences, batch inserts)
+
+  tasks:
+    - Break tasks into highly actionable chunks of max 2 hours estimated work
+    - Each task must be independently testable to ensure isolated service testing
+    - Include crystal clear acceptance criteria for every single chunk
+    - Order tasks strictly based on dependency resolution (e.g. database schema before API routes)
+    - Explicitly list targeted file paths that need creation/modification per task

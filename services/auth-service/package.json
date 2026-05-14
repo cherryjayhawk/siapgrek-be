@@ -1,0 +1,23 @@
+{
+    "name": "auth-service",
+    "module": "src/index.ts",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "start": "bun run src/index.ts"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/pg": "^8.18.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "better-auth": "^1.2.0",
+        "hono": "^4.7.0",
+        "ioredis": "^5.10.1",
+        "pg": "^8.13.0"
+    }
+}

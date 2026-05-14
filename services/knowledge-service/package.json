@@ -1,0 +1,23 @@
+{
+    "name": "knowledge-service",
+    "module": "src/index.ts",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "start": "bun run src/index.ts"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "@types/pg": "^8.20.0"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.12.1",
+        "hono": "^4.7.0",
+        "pg": "^8.13.0",
+        "zod": "^3.24.0"
+    }
+}
