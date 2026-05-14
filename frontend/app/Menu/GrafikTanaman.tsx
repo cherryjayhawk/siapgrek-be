@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   AreaChart, Area,
   LineChart, Line,
@@ -14,33 +14,7 @@ import IntervalGrafik from "../../components/IntervalGrafik";
 
 type Props = { setActiveMenu: (menu: string) => void };
 
-/* ── HELPERS ─────────────────────────────── */
-function getRangeHours(r: string) {
-  return r === "last_1h" ? 1 : r === "last_6h" ? 6 : 24;
-}
-function getIntervalMinutes(i: string) {
-  return i === "1 minute" ? 1 : i === "5 minutes" ? 5 : i === "10 minutes" ? 10 : 60;
-}
-function generateData(range: string, interval: string) {
-  const totalHours = getRangeHours(range);
-  const stepMinutes = getIntervalMinutes(interval);
-  const now = new Date();
-  const totalPoints = Math.floor((totalHours * 60) / stepMinutes);
-  return Array.from({ length: totalPoints + 1 }, (_, idx) => {
-    const date = new Date(now);
-    date.setMinutes(now.getMinutes() - (totalPoints - idx) * stepMinutes);
-    return {
-      label:    date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-      envTemp:  26 + Math.random() * 4,
-      envHum:   60 + Math.random() * 10,
-      light:   500 + Math.random() * 200,
-      soilTemp: 25 + Math.random() * 4,
-      soilHum:  50 + Math.random() * 15,
-      soilPH:  5.5 + Math.random(),
-      soilEC:    1 + Math.random(),
-    };
-  });
-}
+// Replaced by real data fetch
 
 /* ── STATS CALCULATOR ────────────────────── */
 function calcStats(data: any[], key: string) {
@@ -215,10 +189,40 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 /* ── MAIN ────────────────────────────────── */
 export default function GrafikTanaman({ setActiveMenu }: Props) {
 
-  const [range, setRange]       = useState("today");
+  const [range, setRange]       = useState("last_24h");
   const [interval, setInterval] = useState("1 hour");
+  const [chartData, setChartData] = useState<any[]>([]);
 
-  const chartData = useMemo(() => generateData(range, interval), [range, interval]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const query = `device_id=node1&range=${range}&bucket=${interval}&metric=env_temperature&metric=env_humidity&metric=light_lux&metric=soil_temperature&metric=soil_humidity&metric=soil_ph&metric=soil_conductivity`;
+        const res = await fetch(`/api/history?${query}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data) {
+            const formatted = json.data.map((d: any) => {
+              const date = new Date(d.bucket);
+              return {
+                label: date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                envTemp: d.avg_env_temperature,
+                envHum: d.avg_env_humidity,
+                light: d.avg_light_lux,
+                soilTemp: d.avg_soil_temperature,
+                soilHum: d.avg_soil_humidity,
+                soilPH: d.avg_soil_ph,
+                soilEC: d.avg_soil_conductivity,
+              }
+            });
+            setChartData(formatted);
+          }
+        }
+      } catch(err) {
+        console.error(err);
+      }
+    };
+    fetchData();
+  }, [range, interval]);
 
   const rangeLabel: Record<string, string> = {
     last_1h:  "1 Jam Terakhir",

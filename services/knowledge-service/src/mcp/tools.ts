@@ -114,24 +114,27 @@ export function createMcpServer(): McpServer {
         async ({ device_id, hours, limit }) => {
             let query = `
                 SELECT
-                    time,
-                    device_id,
-                    soil_temperature,
-                    soil_humidity,
-                    env_temperature,
-                    env_humidity,
-                    light_lux
-                FROM telemetry
-                WHERE time >= NOW() - INTERVAL '${hours} hours'
+                    e.time,
+                    e.device_id,
+                    e.env_temperature,
+                    e.env_humidity,
+                    e.light_lux,
+                    s.slave_id,
+                    s.soil_temperature,
+                    s.soil_humidity,
+                    s.soil_ph,
+                    s.soil_conductivity
+                FROM env_telemetry e
+                LEFT JOIN soil_telemetry s ON e.time = s.time AND e.device_id = s.device_id
+                WHERE e.time >= NOW() - INTERVAL '${hours} hours'
             `;
 
-            const params: string[] = [];
             if (device_id) {
                 params.push(device_id);
-                query += ` AND device_id = $${params.length}`;
+                query += ` AND e.device_id = $${params.length}`;
             }
 
-            query += ` ORDER BY time DESC LIMIT ${limit}`;
+            query += ` ORDER BY e.time DESC LIMIT ${limit}`;
 
             try {
                 const result = await getPool().query(query, params);
@@ -276,23 +279,28 @@ export function createMcpServer(): McpServer {
         async ({ device_id }) => {
             let query = `
                 SELECT
-                    time,
-                    device_id,
-                    soil_temperature,
-                    soil_humidity,
-                    env_temperature,
-                    env_humidity,
-                    light_lux
-                FROM telemetry
+                    e.time,
+                    e.device_id,
+                    e.env_temperature,
+                    e.env_humidity,
+                    e.light_lux,
+                    s.slave_id,
+                    s.soil_temperature,
+                    s.soil_humidity,
+                    s.soil_ph,
+                    s.soil_conductivity
+                FROM env_telemetry e
+                LEFT JOIN soil_telemetry s ON e.time = s.time AND e.device_id = s.device_id
             `;
 
             const params: string[] = [];
             if (device_id) {
                 params.push(device_id);
-                query += ` WHERE device_id = $${params.length}`;
+                query += ` WHERE e.device_id = $${params.length}`;
             }
 
-            query += ` ORDER BY time DESC LIMIT 1`;
+            // Since there can be multiple slaves, limiting to 5 rows will grab the latest env and its associated soil sensors
+            query += ` ORDER BY e.time DESC LIMIT 5`;
 
             try {
                 const result = await getPool().query(query, params);
@@ -310,11 +318,38 @@ export function createMcpServer(): McpServer {
                     };
                 }
 
+                // Group results by device_id and time to format nicely for the LLM
+                const latestReadings: any[] = [];
+                let currentEnv: any = null;
+                
+                for (const row of result.rows) {
+                    if (!currentEnv || currentEnv.time.getTime() !== row.time.getTime()) {
+                        currentEnv = {
+                            time: row.time,
+                            device_id: row.device_id,
+                            env_temperature: row.env_temperature,
+                            env_humidity: row.env_humidity,
+                            light_lux: row.light_lux,
+                            soil_sensors: []
+                        };
+                        latestReadings.push(currentEnv);
+                    }
+                    if (row.slave_id) {
+                        currentEnv.soil_sensors.push({
+                            slave_id: row.slave_id,
+                            temperature: row.soil_temperature,
+                            humidity: row.soil_humidity,
+                            ph: row.soil_ph,
+                            ec: row.soil_conductivity
+                        });
+                    }
+                }
+
                 return {
                     content: [
                         {
                             type: "text" as const,
-                            text: JSON.stringify(result.rows[0], null, 2),
+                            text: JSON.stringify(latestReadings[0], null, 2),
                         },
                     ],
                 };

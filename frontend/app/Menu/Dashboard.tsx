@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import WeatherCard from "../../components/WeatherCard"
 import EnvironmentCard from "../../components/EnvironmentCard"
@@ -14,16 +14,40 @@ type Props = {
 
 export default function Dashboard({ setActiveMenu }: Props) {
 
-  const [selectedPlant, setSelectedPlant] = useState("ID001")
+  const [selectedSlave, setSelectedSlave] = useState("slave_1")
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  const soilData: any = {
-    ID001: { temp: 35, humidity: 75, ph: 6.7, ec: 1.8 },
-    ID002: { temp: 28, humidity: 60, ph: 6.2, ec: 1.3 },
-    ID003: { temp: 30, humidity: 68, ph: 6.5, ec: 1.5 }
-  }
+  useEffect(() => {
+    const fetchTelemetry = async () => {
+      try {
+        // Use Next.js rewrite
+        const res = await fetch("/api/sensor?device_id=node1")
+        if (res.ok) {
+          const json = await res.json()
+          setData(json)
+          if (json.soil_sensors && json.soil_sensors.length > 0) {
+             // If current selected slave doesn't exist, set to first available
+             if (!json.soil_sensors.find((s: any) => s.slave_id === selectedSlave)) {
+                 setSelectedSlave(json.soil_sensors[0].slave_id)
+             }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch telemetry:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchTelemetry()
+    const intv = setInterval(fetchTelemetry, 10000)
+    return () => clearInterval(intv)
+  }, [selectedSlave])
 
   const handleLihatGrafik = () => setActiveMenu("grafik")
-  const currentData = soilData[selectedPlant]
+  
+  const currentSoil = data?.soil_sensors?.find((s: any) => s.slave_id === selectedSlave) || {}
 
   return (
     <div className="space-y-3 lg:space-y-4">
@@ -34,7 +58,11 @@ export default function Dashboard({ setActiveMenu }: Props) {
       {/* TOP CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 lg:gap-3">
         <WeatherCard />
-        <EnvironmentCard />
+        <EnvironmentCard data={{
+           temp: data?.env_temperature,
+           humidity: data?.env_humidity,
+           lux: data?.light_lux
+        }} />
         <RecommendationCard setActiveMenu={setActiveMenu} />
         <div className="sm:col-span-2 xl:col-span-1">
           <ControlMenu />
@@ -44,13 +72,17 @@ export default function Dashboard({ setActiveMenu }: Props) {
       {/* DROPDOWN + BUTTON */}
       <div className="flex items-center gap-2 lg:gap-3">
         <select
-          value={selectedPlant}
-          onChange={(e) => setSelectedPlant(e.target.value)}
+          value={selectedSlave}
+          onChange={(e) => setSelectedSlave(e.target.value)}
           className="px-2.5 py-1.5 border rounded-lg bg-white text-xs lg:text-sm"
         >
-          <option value="ID001">ID 001</option>
-          <option value="ID002">ID 002</option>
-          <option value="ID003">ID 003</option>
+          {data?.soil_sensors?.length ? (
+             data.soil_sensors.map((s: any) => (
+                <option key={s.slave_id} value={s.slave_id}>Slave: {s.slave_id}</option>
+             ))
+          ) : (
+             <option value="slave_1">Waiting for sensors...</option>
+          )}
         </select>
         <button
           onClick={handleLihatGrafik}
@@ -80,14 +112,14 @@ export default function Dashboard({ setActiveMenu }: Props) {
         </div>
       </div>
 
-      {/* SENSOR CARDS — w-fit container hugs the 4 cards, scrollable on small screens */}
+      {/* SENSOR CARDS */}
       <div className="overflow-x-auto pb-1">
         <div className="bg-gray-100 rounded-2xl lg:rounded-3xl p-3 lg:p-5 w-fit">
           <div className="flex gap-3 lg:gap-5">
-            <SensorCard icon="/images/temp.svg" label="Suhu" value={currentData.temp} unit="°C" />
-            <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={currentData.humidity} unit="%" />
-            <SensorCard icon="/images/ph.svg" label="pH" value={currentData.ph} />
-            <SensorCard icon="/images/conductivity.svg" label="Conductivity" value={currentData.ec} unit="mS/Cm" />
+            <SensorCard icon="/images/temp.svg" label="Suhu Tanah" value={currentSoil.soil_temperature ?? "-"} unit="°C" />
+            <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={currentSoil.soil_humidity ?? "-"} unit="%" />
+            <SensorCard icon="/images/ph.svg" label="pH" value={currentSoil.soil_ph ?? "-"} />
+            <SensorCard icon="/images/conductivity.svg" label="Conductivity" value={currentSoil.soil_conductivity ?? "-"} unit="mS/Cm" />
           </div>
         </div>
       </div>

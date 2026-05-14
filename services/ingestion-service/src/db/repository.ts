@@ -12,24 +12,39 @@ export interface SingleInsertResult {
  */
 export async function initDatabase(): Promise<void> {
     try {
+        await sql`CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;`
+
         await sql`
-            CREATE TABLE IF NOT EXISTS telemetry (
+            CREATE TABLE IF NOT EXISTS env_telemetry (
                 time TIMESTAMPTZ NOT NULL,
-                device_id TEXT NOT NULL DEFAULT 'node01',
-                soil_temperature DOUBLE PRECISION,
-                soil_humidity DOUBLE PRECISION,
+                device_id TEXT NOT NULL,
                 env_temperature DOUBLE PRECISION,
                 env_humidity DOUBLE PRECISION,
-                light_lux INTEGER,
+                light_lux INTEGER
+            )
+        `;
+
+        await sql`
+            CREATE TABLE IF NOT EXISTS soil_telemetry (
+                time TIMESTAMPTZ NOT NULL,
+                device_id TEXT NOT NULL,
+                slave_id TEXT NOT NULL,
+                soil_temperature DOUBLE PRECISION,
+                soil_humidity DOUBLE PRECISION,
                 soil_ph DOUBLE PRECISION,
                 soil_conductivity DOUBLE PRECISION
             )
         `;
 
-        await sql`
-            SELECT create_hypertable('telemetry', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE)
-        `;
-        console.log("[db] TimescaleDB hypertable 'telemetry' initialized successfully.");
+        // Wait, since we are using Neon (standard Postgres basically, or open-source Timescale), 
+        // we should create hypertables if possible.
+        try {
+            await sql`SELECT create_hypertable('env_telemetry', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE)`;
+            await sql`SELECT create_hypertable('soil_telemetry', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE)`;
+            console.log("[db] TimescaleDB hypertables initialized successfully.");
+        } catch (e) {
+            console.warn("[db] Could not create hypertables (might not be supported on this Neon tier or extension is missing). Using standard tables.", e);
+        }
 
         // Ensure command_log table exists (standard relational table)
         await sql`
@@ -60,28 +75,45 @@ export async function initDatabase(): Promise<void> {
 export async function insertTelemetrySingle(
     reading: SensorReading
 ): Promise<SingleInsertResult> {
-    const row = {
-        time: reading.timestamp,
-        device_id: reading.deviceId,
-        soil_temperature: reading.soilTemperature,
-        soil_humidity: reading.soilHumidity,
-        env_temperature: reading.envTemperature,
-        env_humidity: reading.envHumidity,
-        light_lux: Math.round(reading.lightLux), // INTEGER mapped
-        soil_ph: reading.soilPh,
-        soil_conductivity: reading.soilConductivity,
+    const envRow = {
+        time: reading.env.timestamp,
+        device_id: reading.env.deviceId,
+        env_temperature: reading.env.envTemperature,
+        env_humidity: reading.env.envHumidity,
+        light_lux: Math.round(reading.env.lightLux),
     };
 
+    let insertedCount = 0;
+
     try {
-        const result = await sql`
-      INSERT INTO telemetry ${sql(row)}
-      RETURNING *
+        // Insert Environment Telemetry
+        const envResult = await sql`
+      INSERT INTO env_telemetry ${sql(envRow)}
     `;
+        insertedCount += envResult.count;
+
+        // Insert Soil Telemetry
+        if (reading.soil && reading.soil.length > 0) {
+            const soilRows = reading.soil.map(s => ({
+                time: s.timestamp,
+                device_id: s.deviceId,
+                slave_id: s.slaveId,
+                soil_temperature: s.soilTemperature,
+                soil_humidity: s.soilHumidity,
+                soil_ph: s.soilPh,
+                soil_conductivity: s.soilConductivity,
+            }));
+
+            const soilResult = await sql`
+                INSERT INTO soil_telemetry ${sql(soilRows)}
+            `;
+            insertedCount += soilResult.count;
+        }
 
         return {
-            insertedCount: result.count,
-            timestamp: reading.timestamp,
-            deviceId: reading.deviceId,
+            insertedCount,
+            timestamp: reading.env.timestamp,
+            deviceId: reading.env.deviceId,
         };
     } catch (err) {
         console.error("[repository] Single insert failed:", err);

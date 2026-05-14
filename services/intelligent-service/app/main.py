@@ -4,7 +4,7 @@ intelligent-service — FastAPI Application Entry Point.
 Manages the application lifecycle:
   - Initializes database schema
   - Loads TFLite disease classification model
-  - Starts MQTT telemetry worker (fuzzy control)
+  - Starts Insight Orchestrator (OpenAI + MCP)
   - Exposes /health, /predict, /predictions endpoints
 """
 
@@ -23,9 +23,7 @@ from app.core.config import (
 from app.core.database import engine, get_db, SessionLocal
 from app.db.models import Base, DiseaseLog, InsightLog
 
-from app.services.fuzzy_service import FuzzyController
 from app.services.ml_service import MLService
-from app.worker import TelemetryWorker
 from app.mcp_client import MCPClient
 from app.insights import InsightOrchestrator, InsightResult
 from app.schemas import InsightRequest, InsightResponse
@@ -67,15 +65,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     ml_service.load_models()
 
-    # 2. Fuzzy controller
-    fuzzy_controller = FuzzyController()
-
-    # 3. Telemetry worker (MQTT-based fuzzy control)
-    worker = TelemetryWorker(
-        fuzzy_controller=fuzzy_controller,
-    )
-    await worker.start()
-
     # 4. MCP client (connects to knowledge-service)
     mcp_client = MCPClient()
     await mcp_client.connect()
@@ -85,7 +74,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Store refs on app.state so routes can access them
     app.state.ml_service = ml_service
-    app.state.worker = worker
     app.state.mcp_client = mcp_client
     app.state.insight_orchestrator = insight_orchestrator
 
@@ -94,7 +82,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # --- Shutdown ----------------------------------------------------------
     logger.info("=== intelligent-service shutting down ===")
     await mcp_client.disconnect()
-    await worker.stop()
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +89,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 # ---------------------------------------------------------------------------
 app = FastAPI(
     title="intelligent-service",
-    description="Core AI Intelligence layer — ML inference, fuzzy control, MQTT overrides",
+    description="Core AI Intelligence layer — ML inference (Disease Classification) and Insight Orchestrator",
     version="0.1.0",
     lifespan=lifespan,
 )

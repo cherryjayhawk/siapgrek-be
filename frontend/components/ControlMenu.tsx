@@ -25,23 +25,26 @@ export default function ControlMenuFloating() {
 
   const controls = [
     {
-      label: "Penyiraman Tanaman",
-      desc: "Siram pot & akar tanaman",
+      id: "watering_valve1",
+      label: "Penyiraman (Valve 1)",
+      desc: "Siram pot & akar tanaman 1",
       icon: "💧",
       state: manualWater,
       set: () => setManualWater(!manualWater),
     },
     {
-      label: "Misting Manual",
+      id: "misting_pump1",
+      label: "Misting (Pump 1)",
       desc: "Semprot kabut untuk kelembapan",
       icon: "🌫️",
       state: manualMisting,
       set: () => setManualMisting(!manualMisting),
     },
     {
-      label: "Tutup Paranet",
-      desc: "Kendalikan intensitas cahaya",
-      icon: "🌤️",
+      id: "misting_pump2",
+      label: "Misting (Pump 2)",
+      desc: "Semprot kabut sekunder",
+      icon: "🌫️",
       state: manualLight,
       set: () => setManualLight(!manualLight),
     },
@@ -118,7 +121,7 @@ export default function ControlMenuFloating() {
             <div className="space-y-1.5">
               {controls.map(ctrl => (
                 <div
-                  key={ctrl.label}
+                  key={ctrl.id}
                   className={`flex justify-between items-center rounded-xl px-3 py-2.5 transition ${
                     autoMode ? "bg-white/5" : "bg-white/10"
                   }`}

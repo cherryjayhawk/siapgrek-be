@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
         destination: "http://localhost:3002/api/v1/telemetry/latest",
       },
       {
+        source: "/api/history",
+        destination: "http://localhost:3002/api/v1/telemetry/history",
+      },
+      {
         source: "/api/anomaly",
         destination: "http://localhost:3003/api/anomaly",
       },

@@ -104,19 +104,28 @@ model DiseaseLog {
   @@map("disease_log")
 }
 
-model Telemetry {
+model EnvTelemetry {
   time              DateTime @db.Timestamptz
   deviceId          String   @default("node01") @map("device_id")
-  soilTemperature   Float?   @map("soil_temperature")
-  soilHumidity      Float?   @map("soil_humidity")
   envTemperature    Float?   @map("env_temperature")
   envHumidity       Float?   @map("env_humidity")
   lightLux          Int?     @map("light_lux")
+
+  @@id([deviceId, time])
+  @@map("env_telemetry")
+}
+
+model SoilTelemetry {
+  time              DateTime @db.Timestamptz
+  deviceId          String   @default("node01") @map("device_id")
+  slaveId           String   @map("slave_id")
+  soilTemperature   Float?   @map("soil_temperature")
+  soilHumidity      Float?   @map("soil_humidity")
   soilPh            Float?   @map("soil_ph")
   soilConductivity  Float?   @map("soil_conductivity")
 
-  @@id([deviceId, time])
-  @@map("telemetry")
+  @@id([deviceId, slaveId, time])
+  @@map("soil_telemetry")
 }
 
 // -------------------------------------------

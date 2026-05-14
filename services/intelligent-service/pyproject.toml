@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.22",
-    "scikit-fuzzy>=0.5.0",
+
     "scipy>=1.17.1",
     "sqlalchemy>=2.0.48",
     "uvicorn[standard]>=0.41.0",

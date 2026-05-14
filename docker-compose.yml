@@ -179,7 +179,6 @@ services:
       MQTT_USERNAME: ${MOSQUITTO_USERNAME}
       MQTT_PASSWORD: ${MOSQUITTO_PASSWORD}
       DISEASE_MODEL_PATH: models/model_cnn_finetuned_V3.tflite
-      ANOMALY_MODEL_PATH: models/anomaly_detection.tflite
       SERVICE_PORT: "3003"
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
       KNOWLEDGE_MCP_URL: http://knowledge-service:3000/mcp

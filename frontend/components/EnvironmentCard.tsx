@@ -1,15 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import axios from "axios"
+type EnvData = {
+  temp?: number
+  humidity?: number
+  lux?: number
+}
 
-export default function EnvironmentCard() {
-  const [data, setData] = useState<any>(null)
-
-  useEffect(() => {
-    axios.get("/api/sensor").then((res) => setData(res.data))
-  }, [])
-
+export default function EnvironmentCard({ data }: { data?: EnvData }) {
   return (
     <div className="relative bg-gradient-to-br from-[#00BD6E] to-[#007E45]
       rounded-xl p-2.5 text-white w-full overflow-hidden">
@@ -34,15 +31,15 @@ export default function EnvironmentCard() {
           <div className="flex justify-between">
             <div>
               <p className="text-[9px] lg:text-[10px] opacity-80">Suhu</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.suhu}°C</p>
+              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.temp ?? "-"}°C</p>
             </div>
             <div>
               <p className="text-[9px] lg:text-[10px] opacity-80">Kelembapan</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.kelembapan}%</p>
+              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.humidity ?? "-"}%</p>
             </div>
             <div>
               <p className="text-[9px] lg:text-[10px] opacity-80">Cahaya</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.cahaya}</p>
+              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.lux ?? "-"}</p>
             </div>
           </div>
         ) : (

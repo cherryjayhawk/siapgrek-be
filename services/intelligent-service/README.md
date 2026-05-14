@@ -7,8 +7,7 @@ Core AI Intelligence layer for the Greenhouse Orchid IoT System.
 - **Runtime**: Python 3.12
 - **Framework**: FastAPI + Uvicorn
 - **ML Engine**: TensorFlow Lite (`.tflite`)
-- **Queue**: Redis Pub/Sub (consuming from `ingestion-service`)
-- **Control**: Fuzzy Logic → MQTT command overrides
+- **Features**: Disease Classification (TFLite) & Insight Orchestrator (MCP + OpenAI)
 - **Package Manager**: `uv`
 
 ## Development

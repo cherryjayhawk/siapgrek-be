@@ -152,14 +152,14 @@ context: |
   ### Command
 
   ```
-  orchid/{device_id}/command/{actuator}
+  orchid/{device_id}/command/{actuator_kind}/{actuator_id}
   ```
 
   Examples:
 
   ```
-  orchid/node1/command/misting_pump
-  orchid/node1/command/curtain
+  orchid/node1/command/misting/pump1
+  orchid/node1/command/watering/valve1
   ```
 
   Payload (Binary Command):
@@ -183,12 +183,15 @@ context: |
 
   ```json
   {
-    "soil": {
-      "temperature": 24.8,
-      "humidity": 71.2,
-      "ph": 6.0,
-      "ec": 1.5
-    },
+    "soil_sensors": [
+      {
+        "slave_id": "slave_1",
+        "temperature": 24.8,
+        "humidity": 71.2,
+        "ph": 6.0,
+        "ec": 1.5
+      }
+    ],
     "environment": {
       "temperature": 27.3,
       "humidity": 68.5

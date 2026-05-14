@@ -8,7 +8,7 @@ const MQTT_URL = process.env.MQTT_BROKER_URL || "mqtt://localhost:1883";
 const MQTT_USERNAME = process.env.MQTT_USERNAME || "orchid_mqtt";
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "mqtt_secret_change_me";
 const MQTT_TELEMETRY_TOPIC = process.env.MQTT_TOPIC || "orchid/+/telemetry";
-const MQTT_COMMAND_TOPIC = "orchid/+/command/+";
+const MQTT_COMMAND_TOPIC = "orchid/+/command/+/+";
 
 export function initMqttClient(): mqtt.MqttClient {
     console.log(`[mqtt] Connecting to broker at ${MQTT_URL}...`);
@@ -52,10 +52,11 @@ export function initMqttClient(): mqtt.MqttClient {
         console.log("[mqtt] Message received on topic:", topic);
         const parts = topic.split("/");
 
-        // --- Command topic: orchid/{device_id}/command/{actuator} ---
-        if (parts.length >= 4 && parts[2] === "command") {
+        // --- Command topic: orchid/{device_id}/command/{actuator_kind}/{actuator_id} ---
+        if (parts.length >= 5 && parts[2] === "command") {
             const deviceId = parts[1] || "unknown_device";
-            const actuator = parts[3] || "unknown_actuator";
+            const actuatorKind = parts[3] || "unknown_kind";
+            const actuatorId = parts[4] || "unknown_actuator";
             const payload = message.toString().trim();
             const commandValue = parseInt(payload, 10);
 
@@ -67,13 +68,13 @@ export function initMqttClient(): mqtt.MqttClient {
             try {
                 await insertCommandLog({
                     deviceId,
-                    actuator,
+                    actuator: `${actuatorKind}/${actuatorId}`,
                     commandValue,
-                    source: "fuzzy-logic",
+                    source: "manual", // Source could be UI/manual now that fuzzy is edge
                 });
-                console.log(`[mqtt] Command logged: ${deviceId}/${actuator} = ${commandValue}`);
+                console.log(`[mqtt] Command logged: ${deviceId}/${actuatorKind}/${actuatorId} = ${commandValue}`);
             } catch (err) {
-                console.error(`[mqtt] Error logging command for ${deviceId}/${actuator}:`, err);
+                console.error(`[mqtt] Error logging command for ${deviceId}/${actuatorKind}/${actuatorId}:`, err);
             }
             return;
         }
@@ -86,16 +87,24 @@ export function initMqttClient(): mqtt.MqttClient {
 
         // 2. If valid, insert to database immediately
         if (validData) {
+            const timestamp = validData.timestamp || new Date();
             const reading: SensorReading = {
-                timestamp: validData.timestamp || new Date(),
-                deviceId,
-                soilTemperature: validData.soil.temperature,
-                soilHumidity: validData.soil.humidity,
-                envTemperature: validData.environment.temperature,
-                envHumidity: validData.environment.humidity,
-                lightLux: validData.light.lux,
-                soilPh: validData.soil.ph ?? null,
-                soilConductivity: validData.soil.conductivity ?? null,
+                env: {
+                    deviceId,
+                    timestamp,
+                    envTemperature: validData.environment.temperature,
+                    envHumidity: validData.environment.humidity,
+                    lightLux: validData.light.lux,
+                },
+                soil: (validData.soil_sensors || []).map(s => ({
+                    deviceId,
+                    slaveId: s.slave_id,
+                    timestamp,
+                    soilTemperature: s.temperature,
+                    soilHumidity: s.humidity,
+                    soilPh: s.ph ?? null,
+                    soilConductivity: s.ec ?? null,
+                })),
             };
 
             try {
