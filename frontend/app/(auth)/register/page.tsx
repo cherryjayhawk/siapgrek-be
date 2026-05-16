@@ -1,8 +1,8 @@
-import LoginForm from "./LoginForm";
+import RegisterForm from "@/components/RegisterForm";
 import Image from "next/image";
-import { momoTrust } from "../fonts";
+import { momoTrust } from "@/lib/fonts";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <main className="grid grid-cols-1 md:grid-cols-2 bg-white" style={{ height: "100dvh" }}>
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
       {/* RIGHT */}
       <div className="flex items-center justify-center px-6 overflow-y-auto" style={{ height: "100dvh" }}>
         <div className="w-full max-w-sm py-4">
-          <LoginForm />
+          <RegisterForm />
         </div>
       </div>
 

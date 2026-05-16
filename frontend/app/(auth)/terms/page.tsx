@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { momoTrust } from "../fonts";
+import { momoTrust } from "@/lib/fonts";
 
 export default function TermsPage() {
   const sections = [

@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Cropper from "react-easy-crop";
-import { momoTrust } from "../../fonts";
-import { useUser } from "@/app/context/UserContext";
+import { momoTrust } from "@/lib/fonts";
+import { useUser } from "@/context/UserContext";
 import Snackbar from "@/components/Snackbar";
 import { ChevronLeft } from "lucide-react";
 

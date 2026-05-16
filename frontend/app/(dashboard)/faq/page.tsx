@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronDown, ChevronUp } from "lucide-react";
-import { momoTrust } from "../../fonts";
+import { momoTrust } from "@/lib/fonts";
 
 type Props = {
   onBack?: () => void;

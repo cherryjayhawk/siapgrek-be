@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { momoTrust } from "../fonts";
+import { momoTrust } from "@/lib/fonts";
 
 type Step = "email" | "otp" | "reset" | "done";
 

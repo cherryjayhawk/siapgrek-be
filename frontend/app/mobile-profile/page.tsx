@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { useUser } from "@/app/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import Navbar from "@/components/Navbar";
 
 function LogoutDialog({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
@@ -50,7 +50,7 @@ export default function MobileProfilePage() {
   }, [router]);
 
   const handleLogout = () => { window.location.href = "/login"; };
-  const goTo = (menu: string) => router.push(`/?active=${menu}`);
+  const goTo = (menu: string) => router.push(`/${menu === "dashboard" ? "" : menu}`);
 
   const menuItems = [
     {

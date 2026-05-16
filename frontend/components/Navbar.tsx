@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useUser } from "@/app/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {

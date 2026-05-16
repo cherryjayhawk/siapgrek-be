@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { momoTrust } from "../fonts";
+import { momoTrust } from "@/lib/fonts";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 

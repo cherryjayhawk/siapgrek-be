@@ -32,5 +32,9 @@ Migrate the `activeMenu` switch statement into proper Next.js route segments:
 - Keep `'use client'` only on interactive leaf nodes (like charts or forms).
 - Refactor the current `useSearchParams` hook usage which forces client-side bailouts, migrating towards server-side search params or localized client components where necessary.
 
+### Step 2.5: File Restructuring (Separation of Concerns)
+- Ensure the `app/` directory ONLY contains file-based routing components (`page.tsx`, `layout.tsx`, `globals.css`, and `api/` routes).
+- Move `context/`, `utils/`, `fonts/` and standalone component files (like `LoginForm.tsx`, `RegisterForm.tsx`) out of `app/` into their respective sibling directories at the `frontend/` root (e.g., `frontend/context`, `frontend/utils`, `frontend/components`).
+
 ## 3. Execution
-After this plan is approved, I will begin dismantling the SPA structure in `page.tsx` and migrating the `app/Menu/*` files into dedicated route segments.
+After this plan is approved, I will begin dismantling the SPA structure in `page.tsx` and migrating the `app/Menu/*` files into dedicated route segments. Furthermore, I will clean up the `app/` folder by relocating all non-routing files to the root level.

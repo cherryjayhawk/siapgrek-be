@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { poppins, momoTrust } from "./fonts";
+import { poppins, momoTrust } from "@/lib/fonts";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { UserProvider } from "./context/UserContext";
+import { UserProvider } from "@/context/UserContext";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
