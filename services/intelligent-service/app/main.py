@@ -94,6 +94,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS — allow frontend to call this service
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get("TRUSTED_ORIGINS", "http://localhost:3000").split(","),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve uploaded disease images as static files
+from fastapi.staticfiles import StaticFiles
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 
 # ---------------------------------------------------------------------------
 # Background Tasks
@@ -231,7 +244,7 @@ async def predict(
         # Absolute path for saving on disk
         absolute_file_path = os.path.join(UPLOAD_DIR, random_filename)
         # Relative path for DB and API response consistency
-        relative_file_path = f"uploads/{random_filename}"
+        relative_file_path = f"/uploads/{random_filename}"
         
         with open(absolute_file_path, "wb") as buffer:
             buffer.write(image_bytes)

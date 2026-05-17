@@ -1,6 +1,7 @@
 import { initDatabase } from "./db/repository";
 import { checkDbConnection } from "./db/client";
 import { initMqttClient } from "./mqtt/client";
+import { createHttpServer } from "./http/server";
 
 /**
  * Ingestion Service - Main Entrypoint
@@ -9,6 +10,7 @@ import { initMqttClient } from "./mqtt/client";
  * - Subscribes to MQTT telemetry topics
  * - Validates payloads with Zod
  * - Immediately inserts readings into TimescaleDB
+ * - Exposes HTTP command bridge for frontend actuator control
  */
 
 async function start() {
@@ -24,8 +26,18 @@ async function start() {
     }
 
     // 2. Initialize MQTT Client (which handles receiving and storing data)
-    initMqttClient();
+    const mqttClient = initMqttClient();
 
+    // 3. Start HTTP server for command bridge
+    const httpPort = parseInt(process.env.INGESTION_HTTP_PORT || "3005", 10);
+    const app = createHttpServer(mqttClient);
+
+    Bun.serve({
+        port: httpPort,
+        fetch: app.fetch,
+    });
+
+    console.log(`[ingestion-service] HTTP command bridge listening on :${httpPort}`);
     console.log("[ingestion-service] Orchestration loop initialized. Immediate insertion active.");
 }
 

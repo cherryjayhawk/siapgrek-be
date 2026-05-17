@@ -9,7 +9,7 @@ export const poppins = Poppins({
 });
 
 export const momoTrust = localFont({
-  src: "./fonts/MomoTrustDisplay-Regular.ttf",
+  src: "../fonts/MomoTrustDisplay-Regular.ttf",
   weight: "400",
   style: "normal",
   variable: "--font-momo",

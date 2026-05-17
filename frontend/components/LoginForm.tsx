@@ -6,12 +6,15 @@ import { momoTrust } from "@/lib/fonts";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { signIn } from "@/lib/auth-client";
+
 export default function LoginForm() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -19,7 +22,7 @@ export default function LoginForm() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setSuccess("");
@@ -27,8 +30,26 @@ export default function LoginForm() {
     if (!form.email.trim()) newErrors.email = "Email wajib diisi.";
     if (!form.password) newErrors.password = "Password wajib diisi.";
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    setSuccess("Login berhasil! Mengalihkan...");
-    setTimeout(() => router.push("/"), 800);
+
+    setLoading(true);
+    try {
+      const { error } = await signIn.email({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (error) {
+        setErrors({ email: error.message || "Email atau password salah." });
+        return;
+      }
+
+      setSuccess("Login berhasil! Mengalihkan...");
+      setTimeout(() => router.push("/"), 500);
+    } catch {
+      setErrors({ email: "Gagal terhubung ke server. Coba lagi." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass = (field: string) =>
@@ -105,8 +126,17 @@ export default function LoginForm() {
 
       {/* SUBMIT */}
       <button type="submit"
-        className="w-full rounded-full bg-primary py-2.5 lg:py-3 text-white font-semibold text-sm lg:text-base hover:bg-primary/80 transition">
-        Masuk
+        disabled={loading}
+        className="w-full rounded-full bg-primary py-2.5 lg:py-3 text-white font-semibold text-sm lg:text-base hover:bg-primary/80 disabled:opacity-70 transition flex items-center justify-center gap-2">
+        {loading ? (
+          <>
+            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            Masuk...
+          </>
+        ) : "Masuk"}
       </button>
 
       <p className="mt-3 text-center text-xs text-gray-600">

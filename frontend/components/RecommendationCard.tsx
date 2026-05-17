@@ -4,7 +4,16 @@ import { useState } from "react"
 import Image from "next/image"
 import DetailRekomendasi from "./DetailRekomendasi"
 
-export default function RecommendationCard() {
+type Props = {
+  sensorData?: {
+    temp: number | null
+    moist: number | null
+    ph: number | null
+    ec: number | null
+  }
+}
+
+export default function RecommendationCard({ sensorData }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -37,7 +46,7 @@ export default function RecommendationCard() {
         </div>
       </div>
 
-      <DetailRekomendasi open={open} onClose={() => setOpen(false)} />
+      <DetailRekomendasi open={open} onClose={() => setOpen(false)} sensorData={sensorData} />
     </>
   )
 }

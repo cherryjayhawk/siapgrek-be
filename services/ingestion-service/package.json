@@ -15,6 +15,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "hono": "^4.12.19",
     "mqtt": "^5.15.0",
     "postgres": "^3.4.8",
     "zod": "^4.3.6"

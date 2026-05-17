@@ -3,11 +3,14 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from '@/lib/auth-client'
 
 export default function Sidebar() {
   const [showLogout, setShowLogout] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   const mainMenu = [
     { path: '/',         label: 'Dashboard',     icon: '/images/Dashboard.png'      },
@@ -98,8 +101,14 @@ export default function Sidebar() {
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowLogout(false)}
                 className="px-4 py-2 rounded-lg border text-sm">Batal</button>
-              <button onClick={() => { window.location.href = "/login" }}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm">Logout</button>
+              <button onClick={async () => {
+                setLoggingOut(true)
+                await signOut()
+                router.push('/login')
+              }}
+                disabled={loggingOut}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm disabled:opacity-70">
+                {loggingOut ? 'Keluar...' : 'Logout'}</button>
             </div>
           </div>
         </div>

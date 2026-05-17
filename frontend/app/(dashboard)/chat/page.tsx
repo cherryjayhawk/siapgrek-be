@@ -13,7 +13,7 @@ export default function Chat() {
         return [{ role: "assistant" as const, content: insight }];
       }
     }
-    return [{ role: "assistant" as const, content: "Halo, saya asisten SIAPGrek. Silakan tanya apa saja seputar sistem monitoring ini 😊" }];
+    return [{ role: "assistant" as const, content: "Halo, saya **SiapGrek AI** — asisten cerdas untuk sistem monitoring anggrekmu. Saya bisa mengakses data sensor, riwayat penyakit, dan cuaca secara langsung. Silakan tanya apa saja! 😊" }];
   })();
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -28,21 +28,25 @@ export default function Chat() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
-    const newMessage: ChatMessage = { role: "user", content: input.trim() };
-    const newMessages = [...messages, newMessage];
-    setMessages(newMessages);
+    const userMessage = input.trim();
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ query: userMessage }),
       });
       const data = await res.json();
-      setMessages(prev => [...prev, data?.reply ?? { role: "assistant", content: "Maaf, terjadi kesalahan." }]);
+
+      if (data.status === "ok" && data.answer) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.answer }]);
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", content: data.answer || "Maaf, terjadi kesalahan saat menghasilkan insight." }]);
+      }
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Maaf, server chat sedang bermasalah." }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "Maaf, server AI sedang tidak tersedia. Coba lagi nanti." }]);
     } finally {
       setLoading(false);
     }
@@ -53,8 +57,8 @@ export default function Chat() {
 
       {/* TITLE */}
       <div className="flex-shrink-0">
-        <h1 className="text-base lg:text-xl font-bold text-gray-800">Chat AI</h1>
-        <p className="text-xs lg:text-sm text-gray-500">Asisten AI untuk sistem SIAPGrek</p>
+        <h1 className="text-base lg:text-xl font-bold text-gray-800">SiapGrek AI</h1>
+        <p className="text-xs lg:text-sm text-gray-500">Asisten AI dengan akses data sensor, penyakit, dan cuaca real-time</p>
       </div>
 
       {/* CHAT BOX */}
@@ -65,7 +69,7 @@ export default function Chat() {
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex min-w-0 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`
-                max-w-[80%] px-3 py-2 rounded-2xl text-xs lg:text-sm leading-relaxed break-words
+                max-w-[80%] px-3 py-2 rounded-2xl text-xs lg:text-sm leading-relaxed break-words whitespace-pre-wrap
                 ${msg.role === "user"
                   ? "bg-primary text-white rounded-br-sm"
                   : "bg-white text-gray-800 rounded-bl-sm shadow-sm"}
@@ -89,7 +93,7 @@ export default function Chat() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* INPUT — kunci: w-full + min-w-0 + box-border */}
+        {/* INPUT */}
         <form
           onSubmit={handleSubmit}
           className="border-t border-gray-200 p-2.5 lg:p-3 flex gap-2 flex-shrink-0 bg-white w-full min-w-0"
@@ -98,7 +102,7 @@ export default function Chat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ketik pesan..."
+            placeholder="Tanya tentang kondisi tanaman..."
             className="flex-1 min-w-0 w-0 rounded-xl border border-gray-200 px-3 py-2 text-xs lg:text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-gray-50"
           />
           <button

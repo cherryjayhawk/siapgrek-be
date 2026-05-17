@@ -13,7 +13,7 @@ export const auth = betterAuth({
         storeSessionInDatabase: true, // keep DB as source of truth
     },
     secondaryStorage: redisSecondaryStorage,
-    // trustedOrigins: process.env["TRUSTED_ORIGINS"]
-    //     ? process.env["TRUSTED_ORIGINS"].split(",")
-    //     : ["http://localhost:3000"],
+    trustedOrigins: process.env["TRUSTED_ORIGINS"]
+        ? process.env["TRUSTED_ORIGINS"].split(",")
+        : ["http://localhost:3000"],
 });

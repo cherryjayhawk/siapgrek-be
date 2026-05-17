@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 
-import WeatherCard from "../../components/WeatherCard"
-import EnvironmentCard from "../../components/EnvironmentCard"
-import RecommendationCard from "../../components/RecommendationCard"
-import ControlMenu from "../../components/ControlMenu"
-import SensorCard from "../../components/SensorCard"
+import WeatherCard from "@/components/WeatherCard"
+import EnvironmentCard from "@/components/EnvironmentCard"
+import RecommendationCard from "@/components/RecommendationCard"
+import ControlMenu from "@/components/ControlMenu"
+import SensorCard from "@/components/SensorCard"
 
 import { useRouter } from "next/navigation"
 
@@ -16,6 +16,10 @@ export default function Dashboard() {
   const [selectedSlave, setSelectedSlave] = useState("slave_1")
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [actuatorStatus, setActuatorStatus] = useState<{ misting: boolean; watering: boolean }>({
+    misting: false,
+    watering: false,
+  })
 
   useEffect(() => {
     const fetchTelemetry = async () => {
@@ -44,9 +48,42 @@ export default function Dashboard() {
     return () => clearInterval(intv)
   }, [selectedSlave])
 
+  // Fetch latest actuator status from command log
+  useEffect(() => {
+    const fetchActuatorStatus = async () => {
+      try {
+        const res = await fetch("/api/command-log?device_id=node1&limit=10")
+        if (res.ok) {
+          const json = await res.json()
+          const logs = json.data || []
+          // Find the latest command for each actuator type
+          const latestMisting = logs.find((l: any) => l.actuator.includes("misting"))
+          const latestWatering = logs.find((l: any) => l.actuator.includes("watering"))
+          setActuatorStatus({
+            misting: latestMisting?.command_value === 1,
+            watering: latestWatering?.command_value === 1,
+          })
+        }
+      } catch (err) {
+        console.error("Failed to fetch actuator status:", err)
+      }
+    }
+    fetchActuatorStatus()
+    const intv = setInterval(fetchActuatorStatus, 15000)
+    return () => clearInterval(intv)
+  }, [])
+
   const handleLihatGrafik = () => router.push("/grafik")
   
   const currentSoil = data?.soil_sensors?.find((s: any) => s.slave_id === selectedSlave) || {}
+
+  // Prepare sensor data for RecommendationCard
+  const sensorData = {
+    temp: currentSoil.soil_temperature ?? data?.env_temperature ?? null,
+    moist: currentSoil.soil_humidity ?? null,
+    ph: currentSoil.soil_ph ?? null,
+    ec: currentSoil.soil_conductivity ?? null,
+  }
 
   return (
     <div className="space-y-3 lg:space-y-4">
@@ -62,7 +99,7 @@ export default function Dashboard() {
            humidity: data?.env_humidity,
            lux: data?.light_lux
         }} />
-        <RecommendationCard />
+        <RecommendationCard sensorData={sensorData} />
         <div className="sm:col-span-2 xl:col-span-1">
           <ControlMenu />
         </div>
@@ -91,7 +128,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* AKTUATOR STATUS */}
+      {/* AKTUATOR STATUS — now live */}
       <div className="bg-gray-100 rounded-2xl p-2.5 w-fit">
         <div className="flex gap-2 lg:gap-3">
           <div className="bg-white rounded-xl px-2.5 py-2 w-[90px] sm:w-[100px] lg:w-[115px] shadow-sm">
@@ -99,14 +136,18 @@ export default function Dashboard() {
               <img src="/images/misting.svg" className="w-3 lg:w-4" />
               <span className="text-[10px] lg:text-xs">Misting</span>
             </div>
-            <div className="text-sm lg:text-base font-semibold text-green-600">ON</div>
+            <div className={`text-sm lg:text-base font-semibold ${actuatorStatus.misting ? "text-green-600" : "text-red-700"}`}>
+              {actuatorStatus.misting ? "ON" : "OFF"}
+            </div>
           </div>
           <div className="bg-white rounded-xl px-2.5 py-2 w-[90px] sm:w-[100px] lg:w-[115px] shadow-sm">
             <div className="flex items-center gap-1.5 mb-1">
               <img src="/images/watering.svg" className="w-3 lg:w-4" />
               <span className="text-[10px] lg:text-xs">Watering</span>
             </div>
-            <div className="text-sm lg:text-base font-semibold text-red-700">OFF</div>
+            <div className={`text-sm lg:text-base font-semibold ${actuatorStatus.watering ? "text-green-600" : "text-red-700"}`}>
+              {actuatorStatus.watering ? "ON" : "OFF"}
+            </div>
           </div>
         </div>
       </div>

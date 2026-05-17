@@ -3,31 +3,53 @@
 import { useState } from "react";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import { momoTrust } from "@/lib/fonts";
+import { authClient } from "@/lib/auth-client";
 
 type Props = { onBack?: () => void };
 
 export default function ChangePassword({ onBack }: Props) {
-  const [form, setForm] = useState({ password: "", confirmPassword: "" });
+  const [form, setForm] = useState({ currentPassword: "", password: "", confirmPassword: "" });
   const [errors, setErrors] = useState<any>({});
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (errors[e.target.name]) setErrors((p: any) => ({ ...p, [e.target.name]: "" }));
+    setSuccess(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: any = {};
-    if (!form.password) newErrors.password = "Password wajib diisi";
-    else if (form.password.length < 6) newErrors.password = "Minimal 6 karakter";
+    if (!form.currentPassword) newErrors.currentPassword = "Password lama wajib diisi";
+    if (!form.password) newErrors.password = "Password baru wajib diisi";
+    else if (form.password.length < 8) newErrors.password = "Minimal 8 karakter";
     if (form.password !== form.confirmPassword) newErrors.confirmPassword = "Password tidak sama";
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
+    if (Object.keys(newErrors).length > 0) return;
+
+    setLoading(true);
+    try {
+      const { error } = await authClient.changePassword({
+        currentPassword: form.currentPassword,
+        newPassword: form.password,
+      });
+
+      if (error) {
+        setErrors({ currentPassword: error.message || "Gagal mengubah password." });
+        return;
+      }
+
       setSuccess(true);
-      setForm({ password: "", confirmPassword: "" });
+      setForm({ currentPassword: "", password: "", confirmPassword: "" });
+    } catch {
+      setErrors({ currentPassword: "Gagal terhubung ke server. Coba lagi." });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,10 +84,24 @@ export default function ChangePassword({ onBack }: Props) {
       )}
 
       <div className="mb-3">
+        <label className="block text-gray-700 mb-1 text-xs lg:text-sm font-medium">Password Lama</label>
+        <div className="relative">
+          <input type={showCurrent ? "text" : "password"} name="currentPassword"
+            value={form.currentPassword} onChange={handleChange} placeholder="Masukkan password saat ini"
+            className={inputClass("currentPassword")} />
+          <button type="button" onClick={() => setShowCurrent(!showCurrent)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            {showCurrent ? <Eye size={18} /> : <EyeOff size={18} />}
+          </button>
+        </div>
+        {errors.currentPassword && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{errors.currentPassword}</p>}
+      </div>
+
+      <div className="mb-3">
         <label className="block text-gray-700 mb-1 text-xs lg:text-sm font-medium">Password Baru</label>
         <div className="relative">
           <input type={showPassword ? "text" : "password"} name="password"
-            value={form.password} onChange={handleChange} placeholder="Minimal 6 karakter"
+            value={form.password} onChange={handleChange} placeholder="Minimal 8 karakter"
             className={inputClass("password")} />
           <button type="button" onClick={() => setShowPassword(!showPassword)}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -90,8 +126,17 @@ export default function ChangePassword({ onBack }: Props) {
       </div>
 
       <button type="submit"
-        className="w-full rounded-full bg-primary py-2.5 lg:py-3 text-white text-sm lg:text-base font-semibold hover:bg-primary/80 transition">
-        Simpan
+        disabled={loading}
+        className="w-full rounded-full bg-primary py-2.5 lg:py-3 text-white text-sm lg:text-base font-semibold hover:bg-primary/80 disabled:opacity-70 transition flex items-center justify-center gap-2">
+        {loading ? (
+          <>
+            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            Menyimpan...
+          </>
+        ) : "Simpan"}
       </button>
 
     </form>

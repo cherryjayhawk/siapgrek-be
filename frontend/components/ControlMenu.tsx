@@ -1,60 +1,100 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
+
+type ActuatorControl = {
+  id: string;
+  kind: string;
+  actuatorId: string;
+  label: string;
+  desc: string;
+  icon: string;
+  state: boolean;
+};
 
 export default function ControlMenuFloating() {
   const [open, setOpen] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
-  const [manualWater, setManualWater] = useState(false);
-  const [manualMisting, setManualMisting] = useState(false);
-  const [manualLight, setManualLight] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
 
-  const Toggle = ({
-    active, disabled, onToggle
-  }: { active: boolean; disabled: boolean; onToggle: () => void }) => (
-    <button
-      disabled={disabled}
-      onClick={onToggle}
-      className={`w-9 h-5 flex items-center rounded-full p-[2px] transition flex-shrink-0 ${
-        active ? "bg-green-500" : "bg-gray-500"
-      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
-    >
-      <div className={`bg-white w-4 h-4 rounded-full transform transition ${active ? "translate-x-4" : "translate-x-0"}`} />
-    </button>
-  );
-
-  const controls = [
+  const [controls, setControls] = useState<ActuatorControl[]>([
     {
       id: "watering_valve1",
+      kind: "watering",
+      actuatorId: "valve1",
       label: "Penyiraman (Valve 1)",
       desc: "Siram pot & akar tanaman 1",
       icon: "💧",
-      state: manualWater,
-      set: () => setManualWater(!manualWater),
+      state: false,
     },
     {
       id: "misting_pump1",
+      kind: "misting",
+      actuatorId: "pump1",
       label: "Misting (Pump 1)",
       desc: "Semprot kabut untuk kelembapan",
       icon: "🌫️",
-      state: manualMisting,
-      set: () => setManualMisting(!manualMisting),
+      state: false,
     },
     {
       id: "misting_pump2",
+      kind: "misting",
+      actuatorId: "pump2",
       label: "Misting (Pump 2)",
       desc: "Semprot kabut sekunder",
       icon: "🌫️",
-      state: manualLight,
-      set: () => setManualLight(!manualLight),
+      state: false,
     },
-  ];
+  ]);
+
+  const sendCommand = useCallback(async (ctrl: ActuatorControl, newValue: boolean) => {
+    setSending(ctrl.id);
+    try {
+      const res = await fetch("/api/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          device_id: "node1",
+          actuator_kind: ctrl.kind,
+          actuator_id: ctrl.actuatorId,
+          value: newValue ? 1 : 0,
+        }),
+      });
+
+      if (res.ok) {
+        // Update local state on success
+        setControls(prev =>
+          prev.map(c => c.id === ctrl.id ? { ...c, state: newValue } : c)
+        );
+      } else {
+        console.error("Command failed:", await res.text());
+      }
+    } catch (err) {
+      console.error("Command request failed:", err);
+    } finally {
+      setSending(null);
+    }
+  }, []);
+
+  const Toggle = ({
+    active, disabled, loading, onToggle
+  }: { active: boolean; disabled: boolean; loading?: boolean; onToggle: () => void }) => (
+    <button
+      disabled={disabled || loading}
+      onClick={onToggle}
+      className={`w-9 h-5 flex items-center rounded-full p-[2px] transition flex-shrink-0 ${
+        active ? "bg-green-500" : "bg-gray-500"
+      } ${disabled || loading ? "opacity-40 cursor-not-allowed" : ""}`}
+    >
+      <div className={`bg-white w-4 h-4 rounded-full transform transition ${
+        loading ? "animate-pulse" : ""
+      } ${active ? "translate-x-4" : "translate-x-0"}`} />
+    </button>
+  );
 
   return (
     <>
-      {/* FLOATING BUTTON
-          - desktop: bottom-12 right-12
-          - mobile:  bottom-20 right-4 (di atas bottom nav yg tingginya ~68px + gap) */}
+      {/* FLOATING BUTTON */}
       <button
         onClick={() => setOpen(!open)}
         className="fixed bottom-20 right-4 md:bottom-12 md:right-12 z-40
@@ -66,12 +106,9 @@ export default function ControlMenuFloating() {
         </div>
       </button>
 
-      {/* PANEL
-          - desktop: kanan bawah
-          - mobile:  full width dengan margin kiri kanan, di atas floating button */}
+      {/* PANEL */}
       {open && (
         <>
-          {/* overlay tipis untuk tutup panel saat klik luar */}
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
 
           <div className="
@@ -104,9 +141,8 @@ export default function ControlMenuFloating() {
                 onToggle={() => {
                   setAutoMode(!autoMode);
                   if (!autoMode === false) {
-                    setManualWater(false);
-                    setManualMisting(false);
-                    setManualLight(false);
+                    // Turning auto mode back on — reset all manual toggles
+                    setControls(prev => prev.map(c => ({ ...c, state: false })));
                   }
                 }}
               />
@@ -135,7 +171,12 @@ export default function ControlMenuFloating() {
                       <p className="text-[10px] text-gray-500">{ctrl.desc}</p>
                     </div>
                   </div>
-                  <Toggle active={ctrl.state} disabled={autoMode} onToggle={ctrl.set} />
+                  <Toggle
+                    active={ctrl.state}
+                    disabled={autoMode}
+                    loading={sending === ctrl.id}
+                    onToggle={() => sendCommand(ctrl, !ctrl.state)}
+                  />
                 </div>
               ))}
             </div>

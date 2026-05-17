@@ -5,9 +5,17 @@ import SensorCard from "./SensorCard"
 
 import { useRouter } from "next/navigation"
 
+type SensorData = {
+  temp: number | null
+  moist: number | null
+  ph: number | null
+  ec: number | null
+}
+
 type Props = {
   open: boolean
   onClose: () => void
+  sensorData?: SensorData
 }
 
 function getScore(value: number, type: string) {
@@ -34,15 +42,34 @@ function getScore(value: number, type: string) {
   return 0
 }
 
-export default function DetailRekomendasi({ open, onClose }: Props) {
+function generateInsight(temp: number, moist: number, ph: number, ec: number): string {
+  const issues: string[] = []
+  if (temp > 33) issues.push("suhu lingkungan terlalu tinggi")
+  else if (temp < 20) issues.push("suhu lingkungan terlalu rendah")
+  if (moist > 80) issues.push("kelembapan tanah berlebih")
+  else if (moist < 40) issues.push("kelembapan tanah terlalu rendah")
+  if (ph < 5.5) issues.push("pH tanah terlalu asam")
+  else if (ph > 7) issues.push("pH tanah terlalu basa")
+  if (ec > 2) issues.push("konduktivitas tanah berlebih")
+  else if (ec < 0.8) issues.push("konduktivitas tanah terlalu rendah")
+
+  if (issues.length === 0) {
+    return "Semua parameter tanaman dalam kondisi optimal. Pertahankan perawatan saat ini dan pantau secara berkala."
+  }
+
+  return `Tanaman menunjukkan kondisi yang perlu diperhatikan. Terdeteksi ${issues.join(", ")}. Disarankan untuk menyesuaikan perawatan dan memantau kondisi secara berkala agar tanaman kembali optimal.`
+}
+
+export default function DetailRekomendasi({ open, onClose, sensorData }: Props) {
   const router = useRouter()
 
   if (!open) return null
 
-  const temp = 35
-  const moist = 75
-  const ph = 6.7
-  const ec = 1.8
+  // Use live data if available, fallback to defaults
+  const temp = sensorData?.temp ?? 0
+  const moist = sensorData?.moist ?? 0
+  const ph = sensorData?.ph ?? 0
+  const ec = sensorData?.ec ?? 0
 
   const score = (getScore(temp, "temp") + getScore(moist, "moist") + getScore(ph, "ph") + getScore(ec, "ec")) / 4
   const kondisi = Math.round(score)
@@ -57,7 +84,7 @@ export default function DetailRekomendasi({ open, onClose }: Props) {
     : color === "orange" ? "bg-orange-100 text-orange-600"
     : "bg-red-100 text-red-500"
 
-  const insightText = `Tanaman menunjukkan kondisi yang perlu diperhatikan. Suhu lingkungan terlalu tinggi dan kelembapan tanah berlebih. Disarankan meningkatkan sirkulasi udara, mengurangi frekuensi penyiraman, serta memantau kondisi pH tanah secara berkala agar kondisi tanaman kembali optimal.`
+  const insightText = generateInsight(temp, moist, ph, ec)
 
   const handleTanyaAI = () => {
     localStorage.setItem("chatInsight", insightText)
@@ -70,7 +97,6 @@ export default function DetailRekomendasi({ open, onClose }: Props) {
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
       onClick={onClose}
     >
-      {/* ukuran modal sama persis, tidak diubah */}
       <div
         className="bg-gray-100 rounded-2xl p-2.5 w-full max-w-[500px] max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -92,34 +118,28 @@ export default function DetailRekomendasi({ open, onClose }: Props) {
           {/* KONDISI TANAMAN */}
           <div className="bg-white rounded-xl p-2 aspect-square flex flex-col justify-between">
             <div>
-              {/* icon naik dari 14 → 18 */}
               <Image src="/images/kondisi.svg" alt="kondisi" width={18} height={18} className="mb-1" />
-              {/* label naik dari [8px] → [10px] */}
               <p className="text-gray-700 text-[10px]">Kondisi Tanaman</p>
             </div>
             <div>
               <div className="flex items-end gap-0.5">
-                {/* value naik dari text-xl → text-2xl */}
                 <span className="text-4xl font-normal tracking-[-0.06em]">{kondisi}</span>
                 <span className="text-gray-400 text-xs pb-0.5">%</span>
               </div>
-              {/* badge font naik dari [8px] → [10px] */}
               <span className={`inline-block mt-1 px-1.5 py-0.5 text-[10px] rounded-full ${badgeColor}`}>
                 {status}
               </span>
             </div>
           </div>
 
-          <SensorCard icon="/images/temp.svg" label="Suhu" value={temp.toString()} unit="°C" square />
-          <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={moist.toString()} unit="%" square />
-          <SensorCard icon="/images/ph.svg" label="pH" value={ph.toString()} square />
+          <SensorCard icon="/images/temp.svg" label="Suhu" value={temp.toFixed(1)} unit="°C" square />
+          <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={moist.toFixed(1)} unit="%" square />
+          <SensorCard icon="/images/ph.svg" label="pH" value={ph.toFixed(1)} square />
 
           {/* INSIGHT */}
           <div className="bg-white rounded-xl p-2 col-span-2 row-span-2 flex flex-col">
             <Image src="/images/insight.svg" alt="insight" width={18} height={18} className="mb-1" />
-            {/* judul naik dari [9px] → [11px] */}
             <p className="text-gray-700 font-medium text-[11px] mb-1.5">Rekomendasi Perlakuan</p>
-            {/* teks naik dari [8px] → [10px] */}
             <p className="text-gray-600 text-[10px] leading-relaxed flex-1">
               {insightText}
             </p>
@@ -131,7 +151,7 @@ export default function DetailRekomendasi({ open, onClose }: Props) {
             </button>
           </div>
 
-          <SensorCard icon="/images/conductivity.svg" label="Conductivity" value={ec.toString()} unit="mS/Cm" square />
+          <SensorCard icon="/images/conductivity.svg" label="Conductivity" value={ec.toFixed(1)} unit="mS/Cm" square />
 
         </div>
       </div>

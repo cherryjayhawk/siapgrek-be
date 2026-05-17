@@ -52,6 +52,9 @@ func main() {
 	v1.Get("/telemetry/latest", telemetryHandler.GetLatest)
 	v1.Get("/telemetry/history", telemetryHandler.GetHistory)
 
+	commandLogHandler := handlers.NewCommandLogHandler(pool)
+	v1.Get("/command-log", commandLogHandler.GetLogs)
+
 	// Start server
 	port := os.Getenv("ANALYTIC_PORT")
 	if port == "" {

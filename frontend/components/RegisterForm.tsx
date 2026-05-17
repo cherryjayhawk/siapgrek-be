@@ -5,6 +5,7 @@ import Image from "next/image";
 import { momoTrust } from "@/lib/fonts";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signUp } from "@/lib/auth-client";
 
 /* ── TERMS MODAL ── */
 function TermsModal({ onClose }: { onClose: () => void }) {
@@ -79,23 +80,39 @@ export default function RegisterForm() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     const newErrors: { [key: string]: string } = {};
     if (!form.name.trim()) newErrors.name = "Nama wajib diisi.";
     if (!form.email.trim()) newErrors.email = "Email wajib diisi.";
     if (!form.password) newErrors.password = "Password wajib diisi.";
+    if (form.password && form.password.length < 8) newErrors.password = "Password minimal 8 karakter.";
     if (form.password && form.password !== form.confirmPassword)
       newErrors.confirmPassword = "Konfirmasi password tidak cocok.";
     if (!form.terms) newErrors.terms = "Anda harus menyetujui syarat dan ketentuan.";
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setLoading(true);
-    // simulasi register — ganti dengan API call nyata
-    setTimeout(() => {
+    try {
+      const { error } = await signUp.email({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
+
+      if (error) {
+        setErrors({ email: error.message || "Gagal mendaftar. Coba lagi." });
+        return;
+      }
+
+      // Registration successful — auto-login happened, redirect to dashboard
       router.push("/");
-    }, 1000);
+    } catch {
+      setErrors({ email: "Gagal terhubung ke server. Coba lagi." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass = (field: string) =>
