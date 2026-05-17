@@ -1,46 +1,42 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import Image from "next/image"
+import { useUser } from "@/context/UserContext"
+import { PencilLine } from "lucide-react"
+import Link from "next/link"
 
 export default function WeatherCard() {
-  const [weather, setWeather] = useState<any>(null)
-  const [location, setLocation] = useState("Mendeteksi lokasi...")
-  const [icon, setIcon] = useState("🌤️")
+  const { lat, lon, isLoading: isUserLoading } = useUser()
 
-  useEffect(() => {
-    if (!navigator.geolocation) { setLocation("Browser tidak mendukung lokasi"); return }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude
-        const lon = pos.coords.longitude
-        try {
-          const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weathercode,windspeed_10m`)
-          const weatherData = await weatherRes.json()
-          const current = weatherData.current
-          setWeather(current)
-          setIcon(getWeatherIcon(current.weathercode))
-          const locRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-          const locData = await locRes.json()
-          const addr = locData.address
-          const city = addr.city || addr.town || addr.village || addr.county || "Lokasi tidak diketahui"
-          setLocation(`${city}, ${addr.state || ""}`)
-        } catch { setLocation("Gagal memuat lokasi") }
-      },
-      () => setLocation("Izin lokasi ditolak")
-    )
-  }, [])
+  const { data: weather, isLoading: isWeatherLoading } = useQuery({
+    queryKey: ['weather', lat, lon],
+    queryFn: async () => {
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weathercode,windspeed_10m`)
+      if (!res.ok) throw new Error("Gagal memuat cuaca")
+      const data = await res.json()
+      return data.current
+    },
+    enabled: !isUserLoading && lat !== null && lon !== null,
+    staleTime: 60 * 60 * 1000, // 1 hour
+  })
 
-  const getWeatherIcon = (code: number) => {
-    if (code === 0) return "☀️"
-    if (code <= 2) return "🌤️"
-    if (code <= 45) return "🌫️"
-    if (code <= 65) return "🌧️"
-    if (code <= 75) return "❄️"
-    if (code <= 86) return "🌨️"
-    if (code >= 95) return "⛈️"
-    return "🌡️"
-  }
+  const { data: location, isLoading: isLocationLoading } = useQuery({
+    queryKey: ['location', lat, lon],
+    queryFn: async () => {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+      if (!res.ok) return "Lokasi terpilih"
+      const data = await res.json()
+      const addr = data.address
+      if (addr) {
+        const city = addr.city || addr.town || addr.village || addr.county || "Lokasi tidak diketahui"
+        return `${city}, ${addr.state || ""}`
+      }
+      return "Lokasi terpilih"
+    },
+    enabled: !isUserLoading && lat !== null && lon !== null,
+    staleTime: Infinity,
+  })
 
   return (
     <div className="relative bg-gradient-to-br from-[#14A5FF] to-[#02588E]
@@ -57,7 +53,9 @@ export default function WeatherCard() {
             <Image src="/images/cuaca.svg" alt="cuaca" width={16} height={16} />
             <h3 className="font-semibold text-[11px] lg:text-xs">Informasi Cuaca</h3>
           </div>
-          <span className="text-base lg:text-lg">{icon}</span>
+          <Link href="/location" className="text-white/80 hover:text-white transition">
+            <PencilLine size={16} />
+          </Link>
         </div>
 
         {weather ? (
@@ -65,7 +63,7 @@ export default function WeatherCard() {
             <p className="text-lg lg:text-xl xl:text-2xl font-bold leading-tight">
               {weather.temperature_2m}°C
             </p>
-            <p className="text-[9px] lg:text-[10px] opacity-90 truncate">{location}</p>
+            <p className="text-[9px] lg:text-[10px] opacity-90 truncate">{isLocationLoading ? "Mendeteksi lokasi..." : location}</p>
             <div className="flex mt-1.5 text-[9px] lg:text-[10px] gap-1.5">
               <span>💨 {weather.windspeed_10m} km/h</span>
               <span>|</span>

@@ -26,7 +26,8 @@ from app.db.models import Base, DiseaseLog, InsightLog
 from app.services.ml_service import MLService
 from app.mcp_client import MCPClient
 from app.insights import InsightOrchestrator, InsightResult
-from app.schemas import InsightRequest, InsightResponse
+from app.chat import ChatbotOrchestrator, ChatResult
+from app.schemas import InsightRequest, InsightResponse, ChatRequest, ChatResponse
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -71,11 +72,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # 5. Insight orchestrator
     insight_orchestrator = InsightOrchestrator(mcp_client)
+    chatbot_orchestrator = ChatbotOrchestrator(mcp_client)
 
     # Store refs on app.state so routes can access them
     app.state.ml_service = ml_service
     app.state.mcp_client = mcp_client
     app.state.insight_orchestrator = insight_orchestrator
+    app.state.chatbot_orchestrator = chatbot_orchestrator
 
     yield
 
@@ -102,6 +105,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from app.knowledge import router as knowledge_router
+app.include_router(knowledge_router)
 
 # Serve uploaded disease images as static files
 from fastapi.staticfiles import StaticFiles
@@ -149,6 +155,7 @@ def background_save_insight_log(
     input_tokens: int,
     output_tokens: int,
     tools_called: list | None,
+    tool_results: list | None = None,
 ):
     """
     Saves the insight interaction log to the database synchronously
@@ -162,6 +169,7 @@ def background_save_insight_log(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             tools_called=tools_called,
+            tool_results=tool_results,
         )
         db.add(record)
         db.commit()
@@ -169,6 +177,39 @@ def background_save_insight_log(
                     input_tokens, output_tokens, len(tools_called or []))
     except Exception as exc:
         logger.error("Failed to save insight log to DB: %s", exc)
+    finally:
+        db.close()
+
+
+def background_save_chat(
+    session_id: str,
+    user_msg: dict,
+    assistant_response: str,
+    tool_results: list | None = None,
+):
+    """
+    Saves the new chat messages to chat_message table.
+    """
+    from app.db.models import ChatMessage
+    db = SessionLocal()
+    try:
+        db.add(ChatMessage(
+            session_id=session_id,
+            role=user_msg["role"],
+            content=user_msg["content"]
+        ))
+        
+        db.add(ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=assistant_response,
+            tool_results=tool_results
+        ))
+        
+        db.commit()
+        logger.info("Chat messages appended to DB (Session: %s)", session_id)
+    except Exception as exc:
+        logger.error("Failed to save chat to DB: %s", exc)
     finally:
         db.close()
 
@@ -291,7 +332,7 @@ async def insights(body: InsightRequest, background_tasks: BackgroundTasks):
     orchestrator: InsightOrchestrator = app.state.insight_orchestrator
 
     try:
-        result: InsightResult = await orchestrator.generate(body.query)
+        result: InsightResult = await orchestrator.generate(body.query, body.lat, body.lon)
 
         background_tasks.add_task(
             background_save_insight_log,
@@ -300,6 +341,7 @@ async def insights(body: InsightRequest, background_tasks: BackgroundTasks):
             input_tokens=result.input_tokens,
             output_tokens=result.output_tokens,
             tools_called=result.tools_called if result.tools_called else None,
+            tool_results=result.tool_results if result.tool_results else None,
         )
 
         return InsightResponse(answer=result.answer, status="ok")
@@ -309,3 +351,85 @@ async def insights(body: InsightRequest, background_tasks: BackgroundTasks):
             answer="An error occurred while generating your insight. Please try again.",
             status="error",
         )
+
+# ---------------------------------------------------------------------------
+# Chat endpoint
+# ---------------------------------------------------------------------------
+@app.post("/api/v1/chat", response_model=ChatResponse)
+async def chat(body: ChatRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """
+    Handle a multi-turn chat interaction.
+    """
+    orchestrator: ChatbotOrchestrator = app.state.chatbot_orchestrator
+
+    try:
+        from app.db.models import ChatSession
+        
+        session_id = body.session_id
+        if not session_id:
+            last_user_query = body.messages[-1].content
+            title = last_user_query[:50] + "..." if len(last_user_query) > 50 else last_user_query
+            new_session = ChatSession(title=title)
+            db.add(new_session)
+            db.commit()
+            db.refresh(new_session)
+            session_id = new_session.id
+            
+        # Convert Pydantic payloads to simple dicts
+        history = [{"role": msg.role, "content": msg.content} for msg in body.messages]
+        result: ChatResult = await orchestrator.generate(history)
+
+        background_tasks.add_task(
+            background_save_chat,
+            session_id=session_id,
+            user_msg=history[-1],
+            assistant_response=result.answer,
+            tool_results=result.tool_results if result.tool_results else None
+        )
+
+        return ChatResponse(answer=result.answer, status="ok", session_id=session_id)
+    except Exception:
+        logger.exception("Chat generation failed")
+        return ChatResponse(
+            answer="An error occurred while generating your chat response. Please try again.",
+            status="error",
+        )
+
+@app.get("/api/v1/chat-sessions")
+def get_chat_sessions(db: Session = Depends(get_db)):
+    from app.db.models import ChatSession
+    sessions = db.query(ChatSession).order_by(ChatSession.updated_at.desc()).all()
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "updated_at": s.updated_at
+        } for s in sessions
+    ]
+
+@app.get("/api/v1/chat-sessions/{session_id}")
+def get_chat_session(session_id: str, db: Session = Depends(get_db)):
+    from app.db.models import ChatSession, ChatMessage
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        return {"error": "not found"}
+    messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.asc()).all()
+    return {
+        "id": session.id,
+        "title": session.title,
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content
+            } for m in messages
+        ]
+    }
+
+@app.delete("/api/v1/chat-sessions/{session_id}")
+def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
+    from app.db.models import ChatSession
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if session:
+        db.delete(session)
+        db.commit()
+    return {"status": "ok"}

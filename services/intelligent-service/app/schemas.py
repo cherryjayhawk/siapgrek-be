@@ -41,6 +41,8 @@ class InsightRequest(BaseModel):
         min_length=1,
         description="The user's natural language question about the greenhouse.",
     )
+    lat: float | None = Field(default=-6.920207, description="Latitude for weather forecast")
+    lon: float | None = Field(default=107.772969, description="Longitude for weather forecast")
 
 
 class InsightResponse(BaseModel):
@@ -54,4 +56,17 @@ class InsightResponse(BaseModel):
         default="ok",
         description="'ok' or 'error'.",
     )
+
+class ChatMessagePayload(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessagePayload]
+    session_id: str | None = None
+
+class ChatResponse(BaseModel):
+    answer: str
+    status: str = "ok"
+    session_id: str | None = None
 

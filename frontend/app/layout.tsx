@@ -4,6 +4,7 @@ import { poppins, momoTrust } from "@/lib/fonts";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { UserProvider } from "@/context/UserContext";
+import Providers from "@/components/Providers";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="id" className={cn(poppins.variable, momoTrust.variable, "font-sans", geist.variable)}>
       <body className={`${poppins.className} bg-white text-gray-900`}>
-        <UserProvider>
-          {children}
-        </UserProvider>
+        <Providers>
+          <UserProvider>
+            {children}
+          </UserProvider>
+        </Providers>
       </body>
     </html>
   );

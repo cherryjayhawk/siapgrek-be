@@ -23,61 +23,49 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "preference",
         {
-            title: "Agricultural Preference & Knowledge",
+            title: "User Preference & Knowledge Docs",
             description:
-                "Retrieves context from uploaded agricultural knowledge .md files. Returns the full text content of all uploaded documents to provide greenhouse preferences and domain knowledge.",
+                "Searches uploaded agricultural knowledge documents using semantic search (RAG) for the given topic.",
             inputSchema: {
                 topic: z
                     .string()
                     .optional()
-                    .describe(
-                        "Optional topic keyword to filter relevant documents",
-                    ),
+                    .describe("The specific topic or query to search for in the knowledge base, e.g. 'misting rules', 'temperature', 'fertilizer'."),
             },
         },
         async ({ topic }) => {
-            const files = await readdir(DOCS_DIR);
-            const mdFiles = files.filter((f) => f.endsWith(".md"));
+            const query = topic || "general guidelines";
+            
+            try {
+                const res = await fetch("http://intelligent-service:3003/api/v1/knowledge/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query, limit: 3 })
+                });
 
-            if (mdFiles.length === 0) {
-                return {
-                    content: [
-                        {
-                            type: "text" as const,
-                            text: "No knowledge documents have been uploaded yet.",
-                        },
-                    ],
-                };
-            }
-
-            const sections: string[] = [];
-
-            for (const file of mdFiles) {
-                const content = await readFile(join(DOCS_DIR, file), "utf-8");
-                // If a topic is provided, only include files that mention it
-                if (
-                    topic &&
-                    !content.toLowerCase().includes(topic.toLowerCase())
-                ) {
-                    continue;
+                if (!res.ok) {
+                    throw new Error(`Knowledge search failed with status ${res.status}`);
                 }
-                sections.push(`--- ${file} ---\n${content}`);
-            }
 
-            if (sections.length === 0) {
+                const data = await res.json();
+                
+                if (!data.chunks || data.chunks.length === 0) {
+                    return {
+                        content: [{ type: "text" as const, text: `No relevant knowledge found for topic: "${topic}"` }],
+                    };
+                }
+
+                const textOutput = data.chunks.map((chunk: string, i: number) => `--- Excerpt ${i + 1} ---\n${chunk}`).join("\n\n");
+                
                 return {
-                    content: [
-                        {
-                            type: "text" as const,
-                            text: `No documents found matching topic: "${topic}"`,
-                        },
-                    ],
+                    content: [{ type: "text" as const, text: textOutput }],
+                };
+            } catch (err) {
+                console.error("Error in preference tool:", err);
+                return {
+                    content: [{ type: "text" as const, text: `Error searching knowledge base: ${err instanceof Error ? err.message : String(err)}` }],
                 };
             }
-
-            return {
-                content: [{ type: "text" as const, text: sections.join("\n\n") }],
-            };
         },
     );
 
@@ -205,11 +193,11 @@ export function createMcpServer(): McpServer {
             let query = `
                 SELECT
                     id,
-                    time,
+                    timestamp,
                     device_id,
                     disease_name
                 FROM disease_log
-                WHERE time >= NOW() - INTERVAL '${days} days'
+                WHERE timestamp >= NOW() - INTERVAL '${days} days'
             `;
 
             const params: string[] = [];
@@ -218,7 +206,7 @@ export function createMcpServer(): McpServer {
                 query += ` AND device_id = $${params.length}`;
             }
 
-            query += ` ORDER BY time DESC LIMIT ${limit}`;
+            query += ` ORDER BY timestamp DESC LIMIT ${limit}`;
 
             try {
                 const result = await getPool().query(query, params);
@@ -382,11 +370,11 @@ export function createMcpServer(): McpServer {
                 lat: z
                     .string()
                     .describe("Latitude coordinate of the location")
-                    .default("-6.92526061593066"),
+                    .default("-6.920207255627026"),
                 lon: z
                     .string()
                     .describe("Longitude coordinate of the location")
-                    .default("107.77446392772714"),
+                    .default("107.77296908018026"),
             },
         },
 
@@ -400,7 +388,7 @@ export function createMcpServer(): McpServer {
                 };
             }
 
-            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&cnt=8`;
 
             try {
                 const response = await fetch(url);
@@ -413,14 +401,23 @@ export function createMcpServer(): McpServer {
 
                 const data: any = await response.json();
 
-                // --- PROSES FILTERING DATA ---
-                const simplifiedForecast = data.list.map((item: any) => ({
-                    dt_txt: item.dt_txt,
-                    temp: item.main.temp,
-                    humidity: item.main.humidity,
-                    pop: item.pop, // Probability of Precipitation
-                    description: item.weather?.description,
-                }));
+                console.log("lat ",lat);
+                console.log("lon ",lon);
+                console.log("Weather Data : ",data.city.name);
+
+                const simplifiedForecast = data.list.map((item: any) => {
+                    const mapped: any = {
+                        dt_txt: item.dt_txt,
+                        temp: item.main.temp,
+                        humidity: item.main.humidity,
+                        pop: item.pop, // Probability of Precipitation
+                        clouds_all: item.clouds?.all,
+                    };
+                    if (item.rain) {
+                        mapped.rain = item.rain;
+                    }
+                    return mapped;
+                });
 
                 return {
                     content: [

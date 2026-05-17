@@ -35,6 +35,18 @@ const nextConfig: NextConfig = {
         destination: "http://localhost:3003/api/v1/insights",
       },
       {
+        source: "/api/chat",
+        destination: "http://localhost:3003/api/v1/chat",
+      },
+      {
+        source: "/api/chat-sessions",
+        destination: "http://localhost:3003/api/v1/chat-sessions",
+      },
+      {
+        source: "/api/chat-sessions/:path*",
+        destination: "http://localhost:3003/api/v1/chat-sessions/:path*",
+      },
+      {
         source: "/uploads/:path*",
         destination: "http://localhost:3003/uploads/:path*",
       },

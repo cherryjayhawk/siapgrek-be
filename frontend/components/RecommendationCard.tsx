@@ -3,6 +3,8 @@
 import { useState } from "react"
 import Image from "next/image"
 import DetailRekomendasi from "./DetailRekomendasi"
+import { PencilLine } from "lucide-react"
+import Link from "next/link"
 
 type Props = {
   sensorData?: {
@@ -27,9 +29,14 @@ export default function RecommendationCard({ sensorData }: Props) {
         />
 
         <div className="relative z-10 flex flex-col justify-between h-full">
-          <div className="flex items-start gap-1.5">
-            <Image src="/images/rekomendasi.svg" alt="" width={16} height={16} className="mt-0.5" />
-            <h3 className="font-semibold text-[11px] lg:text-xs">Rekomendasi</h3>
+          <div className="flex justify-between items-center mb-1">
+            <div className="flex items-start gap-1.5">
+              <Image src="/images/rekomendasi.svg" alt="" width={16} height={16} className="mt-0.5" />
+              <h3 className="font-semibold text-[11px] lg:text-xs">Rekomendasi</h3>
+            </div>
+            <Link href="/knowledge" aria-label="Edit Dokumen" className="text-white/80 hover:text-white transition">
+              <PencilLine size={16} />
+            </Link>
           </div>
 
           <p className="text-[9px] lg:text-[10px] opacity-90 mt-1 lg:mt-1.5">

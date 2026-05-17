@@ -15,7 +15,6 @@ dependencies = [
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.22",
-
     "scipy>=1.17.1",
     "sqlalchemy>=2.0.48",
     "uvicorn[standard]>=0.41.0",
@@ -23,4 +22,6 @@ dependencies = [
     "openai>=1.82.0",
     "httpx>=0.28.1",
     "ai-edge-litert>=2.1.2",
+    "pgvector>=0.4.2",
+    "langchain-text-splitters>=1.1.2",
 ]

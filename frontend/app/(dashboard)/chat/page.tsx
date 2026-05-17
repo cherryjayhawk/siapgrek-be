@@ -1,10 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, Suspense } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-export default function Chat() {
+const GREETING_MESSAGE = "Halo, saya **SiapGrek AI** — asisten cerdas untuk sistem monitoring anggrekmu. Saya bisa mengakses data sensor, riwayat penyakit, dan cuaca secara langsung. Silakan tanya apa saja! 😊";
+
+function ChatContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const sessionId = searchParams.get("session_id");
+
   const initialMessages = (() => {
     if (typeof window !== "undefined") {
       const insight = localStorage.getItem("chatInsight");
@@ -13,13 +22,30 @@ export default function Chat() {
         return [{ role: "assistant" as const, content: insight }];
       }
     }
-    return [{ role: "assistant" as const, content: "Halo, saya **SiapGrek AI** — asisten cerdas untuk sistem monitoring anggrekmu. Saya bisa mengakses data sensor, riwayat penyakit, dan cuaca secara langsung. Silakan tanya apa saja! 😊" }];
+    return [{ role: "assistant" as const, content: GREETING_MESSAGE }];
   })();
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (sessionId) {
+      // Fetch history
+      setLoading(true);
+      fetch(`/api/chat-sessions/${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.messages) {
+            setMessages(data.messages);
+          }
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setMessages(initialMessages);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,21 +55,32 @@ export default function Chat() {
     e.preventDefault();
     if (!input.trim() || loading) return;
     const userMessage = input.trim();
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    
+    const newMessages: ChatMessage[] = [...messages, { role: "user", content: userMessage }];
+    setMessages(newMessages);
     setInput("");
     setLoading(true);
+    
     try {
-      const res = await fetch("/api/insights", {
+      const apiMessages = newMessages.filter(msg => msg.content !== GREETING_MESSAGE);
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMessage }),
+        body: JSON.stringify({ 
+          messages: apiMessages,
+          session_id: sessionId || undefined 
+        }),
       });
       const data = await res.json();
 
-      if (data.status === "ok" && data.answer) {
+      if (res.ok && data.status === "ok" && data.answer) {
         setMessages(prev => [...prev, { role: "assistant", content: data.answer }]);
+        if (data.session_id && data.session_id !== sessionId) {
+          window.dispatchEvent(new Event("refresh-chat-sessions"));
+          router.replace(`/chat?session_id=${data.session_id}`);
+        }
       } else {
-        setMessages(prev => [...prev, { role: "assistant", content: data.answer || "Maaf, terjadi kesalahan saat menghasilkan insight." }]);
+        setMessages(prev => [...prev, { role: "assistant", content: data.answer || "Maaf, terjadi kesalahan saat merespons." }]);
       }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Maaf, server AI sedang tidak tersedia. Coba lagi nanti." }]);
@@ -53,28 +90,24 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-3 min-w-0">
-
-      {/* TITLE */}
-      <div className="flex-shrink-0">
-        <h1 className="text-base lg:text-xl font-bold text-gray-800">SiapGrek AI</h1>
-        <p className="text-xs lg:text-sm text-gray-500">Asisten AI dengan akses data sensor, penyakit, dan cuaca real-time</p>
-      </div>
-
+    <div className="h-full flex flex-col min-w-0 bg-white">
       {/* CHAT BOX */}
-      <div className="flex-1 bg-gray-50 rounded-2xl flex flex-col min-h-0 min-w-0 overflow-hidden border border-gray-100">
-
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
         {/* MESSAGES */}
-        <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-2.5 min-w-0">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 min-w-0 bg-gray-50/30">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex min-w-0 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`
-                max-w-[80%] px-3 py-2 rounded-2xl text-xs lg:text-sm leading-relaxed break-words whitespace-pre-wrap
+                max-w-[80%] px-3 py-2 rounded-2xl text-xs lg:text-sm leading-relaxed break-words
                 ${msg.role === "user"
                   ? "bg-primary text-white rounded-br-sm"
-                  : "bg-white text-gray-800 rounded-bl-sm shadow-sm"}
+                  : "bg-white text-gray-800 rounded-bl-sm shadow-sm prose prose-sm max-w-none"}
               `}>
-                {msg.content}
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))}
@@ -113,8 +146,15 @@ export default function Chat() {
             {loading ? "..." : "Kirim"}
           </button>
         </form>
-
       </div>
     </div>
+  );
+}
+
+export default function Chat() {
+  return (
+    <Suspense fallback={<div className="p-8">Memuat...</div>}>
+      <ChatContent />
+    </Suspense>
   );
 }

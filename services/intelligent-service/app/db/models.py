@@ -4,7 +4,8 @@ SQLAlchemy models for intelligent-service.
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
@@ -46,3 +47,52 @@ class InsightLog(Base):
     input_tokens = Column(Integer, nullable=False, default=0)
     output_tokens = Column(Integer, nullable=False, default=0)
     tools_called = Column(JSON, nullable=True)
+    tool_results = Column(JSON, nullable=True)
+
+class ChatSession(Base):
+    __tablename__ = "chat_session"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+class ChatMessage(Base):
+    __tablename__ = "chat_message"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String, ForeignKey("chat_session.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    tool_calls = Column(JSON, nullable=True)
+    tool_results = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    session = relationship("ChatSession", back_populates="messages")
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_document"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    createdAt = Column("createdAt", DateTime, default=datetime.utcnow, nullable=False)
+    updatedAt = Column("updatedAt", DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    chunks = relationship("KnowledgeChunk", back_populates="document", cascade="all, delete-orphan")
+
+from pgvector.sqlalchemy import Vector
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunk"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    documentId = Column("documentId", String, ForeignKey("knowledge_document.id", ondelete="CASCADE"), nullable=False)
+    chunkIndex = Column("chunkIndex", Integer, nullable=False)
+    content = Column(String, nullable=False)
+    embedding = Column(Vector(1536), nullable=True)
+
+    document = relationship("KnowledgeDocument", back_populates="chunks")

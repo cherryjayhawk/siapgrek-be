@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from '@/lib/auth-client'
+import { Brain, KeyRound, MapPinned, MessageCircleQuestionMark, UserRound } from 'lucide-react'
 
 export default function Sidebar() {
   const [showLogout, setShowLogout] = useState(false)
@@ -20,13 +21,15 @@ export default function Sidebar() {
   ]
 
   const profileMenu = [
-    { path: '/profile',  label: 'Edit Profil',    icon: '/images/profile.svg'   },
-    { path: '/password', label: 'Ganti Password', icon: '/images/password.svg'  },
-    { path: '/faq',      label: 'Pusat Bantuan',  icon: '/images/FAQ.png'       },
+    { path: '/profile',  label: 'Edit Profil',    icon: <UserRound />   },
+    { path: '/password', label: 'Ganti Password', icon: <KeyRound />  },
+    { path: '/location', label: 'Lokasi Greenhouse',icon: <MapPinned />  },
+    { path: '/knowledge',label: 'Pengetahuan AI', icon: <Brain /> },
+    { path: '/faq',      label: 'Pusat Bantuan',  icon: <MessageCircleQuestionMark />       },
     { path: '/',         label: 'Halaman Utama',  icon: '/images/main_page.svg' },
   ]
 
-  const isProfile = pathname?.startsWith("/profile") || pathname?.startsWith("/password") || pathname?.startsWith("/faq")
+  const isProfile = pathname?.startsWith("/profile") || pathname?.startsWith("/password") || pathname?.startsWith("/faq") || pathname?.startsWith("/knowledge") || pathname?.startsWith("/location")
   const menu = isProfile ? profileMenu : mainMenu
 
   return (
@@ -46,8 +49,14 @@ export default function Sidebar() {
                   ${isActive ? 'bg-selected text-primary' : 'text-gray-500 hover:bg-gray-100'}
                 `}
               >
-                <Image src={item.icon} alt={item.label} width={18} height={18}
-                  className={isActive ? '' : 'grayscale opacity-40'} />
+                {typeof item.icon === 'string' ? (
+                  <Image src={item.icon} alt={item.label} width={18} height={18}
+                    className={isActive ? '' : 'grayscale opacity-40'} />
+                ) : (
+                  <div className={`flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px] ${isActive ? 'text-primary' : 'text-gray-400'}`}>
+                    {item.icon}
+                  </div>
+                )}
                 <span className="truncate">{item.label}</span>
               </Link>
             )

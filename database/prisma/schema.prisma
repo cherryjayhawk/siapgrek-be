@@ -8,12 +8,14 @@
 // - Command audit log (fuzzy logic actuator commands)
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [vector]
 }
 
 // -------------------------------------------
@@ -28,9 +30,13 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  
+  lat           Float?
+  lon           Float?
 
   sessions      Session[]
   accounts      Account[]
+  chatSessions  ChatSession[]
 
   @@map("user")
 }
@@ -155,6 +161,65 @@ model InsightLog {
   inputTokens    Int      @map("input_tokens")
   outputTokens   Int      @map("output_tokens")
   toolsCalled    Json?    @map("tools_called")
+  toolResults    Json?    @map("tool_results")
 
   @@map("insight_log")
+}
+
+// -------------------------------------------
+// Chatbot Context
+// -------------------------------------------
+
+model ChatSession {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  title     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@map("chat_session")
+}
+
+model ChatMessage {
+  id          String      @id @default(uuid())
+  sessionId   String      @map("session_id")
+  role        String      // "user", "assistant", or "system"
+  content     String
+  toolCalls   Json?       @map("tool_calls")
+  toolResults Json?       @map("tool_results")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_message")
+}
+
+// -------------------------------------------
+// Knowledge Base (RAG)
+// -------------------------------------------
+model KnowledgeDocument {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  chunks      KnowledgeChunk[]
+
+  @@map("knowledge_document")
+}
+
+model KnowledgeChunk {
+  id          String            @id @default(uuid())
+  documentId  String
+  chunkIndex  Int
+  content     String
+  embedding   Unsupported("vector(1536)")?
+
+  document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_chunk")
 }

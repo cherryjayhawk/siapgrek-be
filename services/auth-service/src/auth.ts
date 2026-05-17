@@ -16,4 +16,16 @@ export const auth = betterAuth({
     trustedOrigins: process.env["TRUSTED_ORIGINS"]
         ? process.env["TRUSTED_ORIGINS"].split(",")
         : ["http://localhost:3000"],
+    user: {
+        additionalFields: {
+            lat: {
+                type: "number",
+                required: false,
+            },
+            lon: {
+                type: "number",
+                required: false,
+            }
+        }
+    }
 });

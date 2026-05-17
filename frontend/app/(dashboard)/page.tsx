@@ -92,7 +92,7 @@ export default function Dashboard() {
       <h1 className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold">Dashboard Monitoring</h1>
 
       {/* TOP CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 lg:gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 w-full">
         <WeatherCard />
         <EnvironmentCard data={{
            temp: data?.env_temperature,
@@ -100,10 +100,10 @@ export default function Dashboard() {
            lux: data?.light_lux
         }} />
         <RecommendationCard sensorData={sensorData} />
-        <div className="sm:col-span-2 xl:col-span-1">
-          <ControlMenu />
-        </div>
       </div>
+      
+      {/* FLOATING FAB MENU */}
+      <ControlMenu />
 
       {/* DROPDOWN + BUTTON */}
       <div className="flex items-center gap-2 lg:gap-3">

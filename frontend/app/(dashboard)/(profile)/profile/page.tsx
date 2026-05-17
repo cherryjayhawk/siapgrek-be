@@ -12,9 +12,10 @@ type Props = { onBack?: () => void };
 
 export default function Profile({ onBack }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
   const { profileImage, setProfileImage, username, setUsername } = useUser();
 
-  const [form, setForm] = useState({ name: username, email: "haileywilliams@gmail.com", gender: "Perempuan", domisili: "Bandung" });
+  const [form, setForm] = useState({ name: username, email: "haileywilliams@gmail.com", gender: "Perempuan", domisili: "Bandung", lat: -6.920207, lon: 107.772969 });
   const [image, setImage] = useState(profileImage);
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -73,13 +74,14 @@ export default function Profile({ onBack }: Props) {
   const handleSave = () => {
     if (!form.name || !form.email) { setSnackbar({ open: true, message: "Data belum lengkap", type: "error" }); return; }
     setUsername(form.name);
+    // Ideally we would save lat/lon to DB here
     setSnackbar({ open: true, message: "Profil berhasil disimpan", type: "success" });
   };
 
   const inputClass = "w-full rounded-full border border-gray-200 px-4 py-2.5 lg:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
 
   return (
-    <div className="w-full max-w-xl">
+    <div className="w-full max-w-xl pb-20">
 
       {/* TITLE — back button hanya mobile (md:hidden) */}
       <div className="flex items-center gap-3 mb-5 lg:mb-7">
