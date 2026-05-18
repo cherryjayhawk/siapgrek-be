@@ -107,7 +107,8 @@ services:
       - "${AUTH_PORT:-3001}:3000"
     environment:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
       DATABASE_URL: ${DATABASE_URL}
       AUTH_PORT: "3000"
     networks:
