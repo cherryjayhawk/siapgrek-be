@@ -51,10 +51,10 @@ const nextConfig: NextConfig = {
         source: "/uploads/:path*",
         destination: `${getUrl('3003')}/uploads/:path*`,
       },
-      // Knowledge Service (Hono/MCP) — :3004
+      // Knowledge APIs in Intelligent Service — :3003
       {
         source: "/api/knowledge/:path*",
-        destination: `${getUrl('3004')}/:path*`,
+        destination: `${getUrl('3003')}/api/v1/knowledge/:path*`,
       },
       // Ingestion Service HTTP bridge — :3005
       {

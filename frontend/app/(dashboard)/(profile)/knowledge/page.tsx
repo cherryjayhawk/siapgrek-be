@@ -13,7 +13,7 @@ export default function KnowledgePage() {
 
   const fetchDocs = async () => {
     try {
-      const res = await fetch("http://localhost:3003/api/v1/knowledge/documents");
+      const res = await fetch("/api/knowledge/documents");
       if (res.ok) {
         const data = await res.json();
         setDocs(data);
@@ -40,7 +40,7 @@ export default function KnowledgePage() {
     formData.append("file", file);
     
     try {
-      const res = await fetch("http://localhost:3003/api/v1/knowledge/documents", {
+      const res = await fetch("/api/knowledge/documents", {
         method: "POST",
         body: formData,
       });
@@ -61,7 +61,7 @@ export default function KnowledgePage() {
   const handleDeleteDoc = async (id: string) => {
     setDocLoading(true);
     try {
-      const res = await fetch(`http://localhost:3003/api/v1/knowledge/documents/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/knowledge/documents/${id}`, { method: "DELETE" });
       if (res.ok) {
         setSnackbar({ open: true, message: "Dokumen dihapus", type: "success" });
         fetchDocs();

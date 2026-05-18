@@ -1,27 +1,43 @@
 # Replace with your actual domain or DuckDNS domain
 siapgrek.duckdns.org {
-    # Route /api/auth traffic to Auth Service
+    # Auth Service
     handle /api/auth* {
         reverse_proxy auth-service:3000
     }
 
-    # Route /api/analytic traffic to Analytic Service
-    handle_path /api/analytic* {
+    # Analytic Service
+    handle /api/v1/telemetry* {
+        reverse_proxy analytic-service:3000
+    }
+    handle /api/v1/command-log* {
         reverse_proxy analytic-service:3000
     }
 
-    # Route /api/knowledge traffic to Knowledge Service
-    handle_path /api/knowledge* {
-        reverse_proxy knowledge-service:3000
-    }
-
-    # Route /api/intelligent traffic to Intelligent Service
-    handle_path /api/intelligent* {
+    # Intelligent Service
+    handle /predict* {
         reverse_proxy intelligent-service:3003
     }
-    
-    # Route /api/ingestion traffic
-    handle_path /api/ingestion* {
+    handle /predictions* {
+        reverse_proxy intelligent-service:3003
+    }
+    handle /api/v1/insights* {
+        reverse_proxy intelligent-service:3003
+    }
+    handle /api/v1/chat* {
+        reverse_proxy intelligent-service:3003
+    }
+    handle /api/v1/chat-sessions* {
+        reverse_proxy intelligent-service:3003
+    }
+    handle /api/v1/knowledge* {
+        reverse_proxy intelligent-service:3003
+    }
+    handle /uploads* {
+        reverse_proxy intelligent-service:3003
+    }
+
+    # Ingestion Service
+    handle /api/v1/command* {
         reverse_proxy ingestion-service:3005
     }
 }
