@@ -25,6 +25,23 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+      
+  # -------------------------------------------
+  # Caddy Reverse Proxy (Handles HTTPS automatically)
+  # -------------------------------------------
+  caddy:
+    image: caddy:latest
+    container_name: orchid-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"   # Required for Let's Encrypt HTTP challenge
+      - "443:443" # HTTPS traffic
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - orchid-net
 
   # -------------------------------------------
   # Data Ingestion Worker
@@ -176,3 +193,7 @@ networks:
 volumes:
   mosquitto-data:
     name: orchid-mosquitto-data
+  caddy-data:
+    name: orchid-caddy-data
+  caddy-config:
+    name: orchid-caddy-config
