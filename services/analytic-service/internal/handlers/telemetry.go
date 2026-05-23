@@ -364,7 +364,18 @@ func (h *TelemetryHandler) GetHistory(c *fiber.Ctx) error {
 	} else {
 		sb.WriteString(", 1 as dummy_soil")
 	}
-	sb.WriteString(` FROM soil_telemetry WHERE device_id = $1 AND time >= $2 AND time < $3 GROUP BY bucket
+	sb.WriteString(` FROM soil_telemetry WHERE device_id = $1 AND time >= $2 AND time < $3`)
+	
+	slaveID := c.Query("slave_id")
+	var queryArgs []interface{}
+	queryArgs = append(queryArgs, deviceID, start, end)
+
+	if slaveID != "" {
+		sb.WriteString(` AND slave_id = $4`)
+		queryArgs = append(queryArgs, slaveID)
+	}
+	
+	sb.WriteString(` GROUP BY bucket
 	)
 	SELECT COALESCE(e.bucket, s.bucket) AS bucket`)
 	for _, m := range metrics {
@@ -380,7 +391,7 @@ func (h *TelemetryHandler) GetHistory(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
-	rows, err := h.pool.Query(ctx, sb.String(), deviceID, start, end)
+	rows, err := h.pool.Query(ctx, sb.String(), queryArgs...)
 	if err != nil {
 		log.Printf("error querying historical telemetry data: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to query historical telemetry data"})

@@ -19,27 +19,27 @@ export default function ControlMenuFloating() {
 
   const [controls, setControls] = useState<ActuatorControl[]>([
     {
-      id: "watering_valve1",
+      id: "watering_valve01",
       kind: "watering",
-      actuatorId: "valve1",
+      actuatorId: "valve01",
       label: "Penyiraman (Valve 1)",
       desc: "Siram pot & akar tanaman 1",
       icon: "💧",
       state: false,
     },
     {
-      id: "misting_pump1",
+      id: "misting_pump01",
       kind: "misting",
-      actuatorId: "pump1",
+      actuatorId: "pump01",
       label: "Misting (Pump 1)",
       desc: "Semprot kabut untuk kelembapan",
       icon: "🌫️",
       state: false,
     },
     {
-      id: "misting_pump2",
+      id: "misting_pump02",
       kind: "misting",
-      actuatorId: "pump2",
+      actuatorId: "pump02",
       label: "Misting (Pump 2)",
       desc: "Semprot kabut sekunder",
       icon: "🌫️",

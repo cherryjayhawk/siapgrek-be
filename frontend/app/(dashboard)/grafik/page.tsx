@@ -190,13 +190,34 @@ export default function GrafikTanaman() {
 
   const [range, setRange]       = useState("last_24h");
   const [interval, setInterval] = useState("1 hour");
+  const [slaveId, setSlaveId]   = useState("");
+  const [availableSlaves, setAvailableSlaves] = useState<{slave_id: string, status: string}[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const router = useRouter();
+
+  // Fetch available sensors to populate dropdown
+  useEffect(() => {
+    const fetchSensors = async () => {
+      try {
+        const res = await fetch("/api/sensor?device_id=node01");
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.soil_sensors) {
+             setAvailableSlaves(data.soil_sensors);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch sensors", err);
+      }
+    };
+    fetchSensors();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const query = `device_id=node01&range=${range}&bucket=${interval}&metric=env_temperature&metric=env_humidity&metric=light_lux&metric=soil_temperature&metric=soil_humidity&metric=soil_ph&metric=soil_conductivity`;
+        let query = `device_id=node01&range=${range}&bucket=${interval}&metric=env_temperature&metric=env_humidity&metric=light_lux&metric=soil_temperature&metric=soil_humidity&metric=soil_ph&metric=soil_conductivity`;
+        if (slaveId) query += `&slave_id=${slaveId}`;
         const res = await fetch(`/api/history?${query}`);
         if (res.ok) {
           const json = await res.json();
@@ -222,7 +243,7 @@ export default function GrafikTanaman() {
       }
     };
     fetchData();
-  }, [range, interval]);
+  }, [range, interval, slaveId]);
 
   const rangeLabel: Record<string, string> = {
     last_1h:  "1 Jam Terakhir",
@@ -247,8 +268,20 @@ export default function GrafikTanaman() {
 
       {/* FILTER */}
       <div className="flex gap-2 lg:gap-4 mb-1 flex-shrink-0 flex-wrap">
+        <select
+          value={slaveId}
+          onChange={(e) => setSlaveId(e.target.value)}
+          className="px-2.5 py-1.5 border rounded-lg bg-white text-xs lg:text-sm"
+        >
+          <option value="">Semua Sensor</option>
+          {availableSlaves.map(s => (
+            <option key={s.slave_id} value={s.slave_id}>
+              Slave: {s.slave_id} {s.status === 'offline' ? '(Offline)' : ''}
+            </option>
+          ))}
+        </select>
         <RangeGrafik value={range} onChange={setRange} />
-        <IntervalGrafik value={interval} onChange={setInterval} />
+        <IntervalGrafik value={interval} onChange={setInterval} rangeId={range} />
       </div>
 
       {/* KETERANGAN periode */}
