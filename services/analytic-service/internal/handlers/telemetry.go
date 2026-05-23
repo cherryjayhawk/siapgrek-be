@@ -205,6 +205,7 @@ func resolveTimeRange(preset string, customBucket string, now time.Time) (start,
 type SoilReading struct {
 	SlaveID          string    `json:"slave_id"`
 	Time             time.Time `json:"time"`
+	Status           string    `json:"status,omitempty"`
 	SoilTemperature  *float64  `json:"soil_temperature,omitempty"`
 	SoilHumidity     *float64  `json:"soil_humidity,omitempty"`
 	SoilPh           *float64  `json:"soil_ph,omitempty"`
@@ -218,12 +219,6 @@ type SensorReading struct {
 	EnvHumidity      *float64      `json:"env_humidity,omitempty"`
 	LightLux         *int          `json:"light_lux,omitempty"`
 	SoilSensors      []SoilReading `json:"soil_sensors,omitempty"`
-	
-	// Fallbacks for UI backward compatibility
-	SoilTemperature  *float64  `json:"soil_temperature,omitempty"`
-	SoilHumidity     *float64  `json:"soil_humidity,omitempty"`
-	SoilPh           *float64  `json:"soil_ph,omitempty"`
-	SoilConductivity *float64  `json:"soil_conductivity,omitempty"`
 }
 
 type AggregatedReading struct {
@@ -262,22 +257,23 @@ func (h *TelemetryHandler) GetLatest(c *fiber.Ctx) error {
 	rows, err := h.pool.Query(ctx, "SELECT DISTINCT ON (slave_id) slave_id, time, soil_temperature, soil_humidity, soil_ph, soil_conductivity FROM soil_telemetry WHERE device_id = $1 ORDER BY slave_id, time DESC", deviceID)
 	if err == nil {
 		defer rows.Close()
-		var count float64
-		
-		// Setup fallback averages
-		var sumTemp, sumHum, sumPh, sumEc float64
-		var countTemp, countHum, countPh, countEc float64
+		var count int
 
 		for rows.Next() {
 			var s SoilReading
 			if err := rows.Scan(&s.SlaveID, &s.Time, &s.SoilTemperature, &s.SoilHumidity, &s.SoilPh, &s.SoilConductivity); err == nil {
+				if time.Since(s.Time) > 1*time.Hour {
+					s.Status = "offline"
+					s.SoilTemperature = nil
+					s.SoilHumidity = nil
+					s.SoilPh = nil
+					s.SoilConductivity = nil
+				} else {
+					s.Status = "online"
+				}
+
 				reading.SoilSensors = append(reading.SoilSensors, s)
 				count++
-				
-				if s.SoilTemperature != nil { sumTemp += *s.SoilTemperature; countTemp++ }
-				if s.SoilHumidity != nil { sumHum += *s.SoilHumidity; countHum++ }
-				if s.SoilPh != nil { sumPh += *s.SoilPh; countPh++ }
-				if s.SoilConductivity != nil { sumEc += *s.SoilConductivity; countEc++ }
 			}
 		}
 
@@ -285,11 +281,6 @@ func (h *TelemetryHandler) GetLatest(c *fiber.Ctx) error {
 			if reading.Time.IsZero() {
 				reading.Time = reading.SoilSensors[0].Time
 			}
-			
-			if countTemp > 0 { v := sumTemp / countTemp; reading.SoilTemperature = &v }
-			if countHum > 0 { v := sumHum / countHum; reading.SoilHumidity = &v }
-			if countPh > 0 { v := sumPh / countPh; reading.SoilPh = &v }
-			if countEc > 0 { v := sumEc / countEc; reading.SoilConductivity = &v }
 		}
 	} else {
 		log.Printf("error querying soil telemetry: %v", err)

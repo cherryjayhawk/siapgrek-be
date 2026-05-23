@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation"
 export default function Dashboard() {
   const router = useRouter()
 
-  const [selectedSlave, setSelectedSlave] = useState("slave_1")
+  const [selectedSlave, setSelectedSlave] = useState("slave_01")
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [actuatorStatus, setActuatorStatus] = useState<{ misting: boolean; watering: boolean }>({
@@ -114,7 +114,9 @@ export default function Dashboard() {
         >
           {data?.soil_sensors?.length ? (
              data.soil_sensors.map((s: any) => (
-                <option key={s.slave_id} value={s.slave_id}>Slave: {s.slave_id}</option>
+                <option key={s.slave_id} value={s.slave_id}>
+                  Slave: {s.slave_id} {s.status === 'offline' ? '(Offline)' : ''}
+                </option>
              ))
           ) : (
              <option value="slave_1">Waiting for sensors...</option>
@@ -156,10 +158,10 @@ export default function Dashboard() {
       <div className="overflow-x-auto pb-1">
         <div className="bg-gray-100 rounded-2xl lg:rounded-3xl p-3 lg:p-5 w-fit">
           <div className="flex gap-3 lg:gap-5">
-            <SensorCard icon="/images/temp.svg" label="Suhu Tanah" value={currentSoil.soil_temperature ?? "-"} unit="°C" />
-            <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={currentSoil.soil_humidity ?? "-"} unit="%" />
-            <SensorCard icon="/images/ph.svg" label="pH" value={currentSoil.soil_ph ?? "-"} />
-            <SensorCard icon="/images/conductivity.svg" label="Conductivity" value={currentSoil.soil_conductivity ?? "-"} unit="mS/Cm" />
+            <SensorCard icon="/images/temp.svg" label="Suhu Tanah" value={currentSoil.soil_temperature != null ? Number(currentSoil.soil_temperature).toFixed(2) : "-"} unit="°C" />
+            <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={currentSoil.soil_humidity != null ? Number(currentSoil.soil_humidity).toFixed(2) : "-"} unit="%" />
+            <SensorCard icon="/images/ph.svg" label="pH" value={currentSoil.soil_ph != null ? Number(currentSoil.soil_ph).toFixed(2) : "-"} />
+            <SensorCard icon="/images/conductivity.svg" label="Conductivity" value={currentSoil.soil_conductivity != null ? Number(currentSoil.soil_conductivity).toFixed(2) : "-"} unit="mS/Cm" />
           </div>
         </div>
       </div>

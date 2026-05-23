@@ -31,15 +31,15 @@ export default function EnvironmentCard({ data }: { data?: EnvData }) {
           <div className="flex justify-between">
             <div>
               <p className="text-[9px] lg:text-[10px] opacity-80">Suhu</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.temp ?? "-"}°C</p>
+              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.temp != null ? Number(data.temp).toFixed(2) : "-"}°C</p>
             </div>
             <div>
               <p className="text-[9px] lg:text-[10px] opacity-80">Kelembapan</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.humidity ?? "-"}%</p>
+              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.humidity != null ? Number(data.humidity).toFixed(2) : "-"}%</p>
             </div>
             <div>
               <p className="text-[9px] lg:text-[10px] opacity-80">Cahaya</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.lux ?? "-"}</p>
+              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.lux != null ? Number(data.lux).toFixed(2) : "-"}</p>
             </div>
           </div>
         ) : (
