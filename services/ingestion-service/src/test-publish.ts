@@ -18,21 +18,25 @@ client.on("connect", () => {
     const topic = "orchid/testnode01/telemetry";
     
     // Simulate reading matching TelemetryPayloadSchema
+    // This matches the firmware's publishTelemetry() output exactly.
     const payload = JSON.stringify({
         timestamp: new Date().toISOString(),
-        soil: {
-            temperature: 24.3 + Math.random() * 2,
-            humidity: 60.5 + Math.random() * 5,
-            ph: 6.2 + Math.random(),
-            conductivity: 1100 + Math.random() * 100,
-        },
         environment: {
             temperature: 28.0 + Math.random() * 3,
             humidity: 70.0 + Math.random() * 10,
         },
         light: {
             lux: 5000 + Math.floor(Math.random() * 5000),
-        }
+        },
+        soil_sensors: [
+            {
+                slave_id: "thcph_1",
+                temperature: 24.3 + Math.random() * 2,
+                humidity: 60.5 + Math.random() * 5,
+                ph: 6.2 + Math.random(),
+                ec: 1.1 + Math.random() * 0.5,
+            }
+        ],
     });
 
     console.log(`[test] Publishing telemetry message to ${topic}:`);

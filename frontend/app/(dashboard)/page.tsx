@@ -25,7 +25,7 @@ export default function Dashboard() {
     const fetchTelemetry = async () => {
       try {
         // Use Next.js rewrite
-        const res = await fetch("/api/sensor?device_id=node1")
+        const res = await fetch("/api/sensor?device_id=node01")
         if (res.ok) {
           const json = await res.json()
           setData(json)
@@ -52,7 +52,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchActuatorStatus = async () => {
       try {
-        const res = await fetch("/api/command-log?device_id=node1&limit=10")
+        const res = await fetch("/api/command-log?device_id=node01&limit=10")
         if (res.ok) {
           const json = await res.json()
           const logs = json.data || []
