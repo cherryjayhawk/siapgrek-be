@@ -171,6 +171,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       KNOWLEDGE_MCP_URL: http://knowledge-service:3000/mcp
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CLOUDINARY_URL: ${CLOUDINARY_URL}
     networks:
       - orchid-net
     healthcheck:
