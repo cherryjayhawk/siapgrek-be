@@ -47,10 +47,7 @@ const nextConfig: NextConfig = {
         source: "/api/chat-sessions/:path*",
         destination: `${getUrl('3003')}/api/v1/chat-sessions/:path*`,
       },
-      {
-        source: "/uploads/:path*",
-        destination: `${getUrl('3003')}/uploads/:path*`,
-      },
+
       // Knowledge APIs in Intelligent Service — :3003
       {
         source: "/api/knowledge/:path*",

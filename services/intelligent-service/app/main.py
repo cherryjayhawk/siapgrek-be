@@ -39,11 +39,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Upload directory for disease images
+# Cloudinary
 # ---------------------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 
 # ---------------------------------------------------------------------------
@@ -109,9 +109,7 @@ app.add_middleware(
 from app.knowledge import router as knowledge_router
 app.include_router(knowledge_router)
 
-# Serve uploaded disease images as static files
-from fastapi.staticfiles import StaticFiles
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 
 
 # ---------------------------------------------------------------------------
@@ -276,32 +274,35 @@ async def predict(
     response_filename = file.filename
     response_filepath = ""
 
-    # Save to disk and enqueue background task only if successful
+    # Upload to Cloudinary and enqueue background task only if successful
     if result.status == "ok":
-        # Generate random filename preserving extension
-        ext = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
-        random_filename = f"{uuid.uuid4().hex}{ext}"
-        
-        # Absolute path for saving on disk
-        absolute_file_path = os.path.join(UPLOAD_DIR, random_filename)
-        # Relative path for DB and API response consistency
-        relative_file_path = f"/uploads/{random_filename}"
-        
-        with open(absolute_file_path, "wb") as buffer:
-            buffer.write(image_bytes)
-
-        background_tasks.add_task(
-            background_save_prediction,
-            filename=random_filename,
-            file_path=relative_file_path,
-            prediction=result.label,
-            class_index=result.class_index,
-            probabilities=result.probabilities,
-            accuracy=result.confidence
-        )
-        
-        response_filename = random_filename
-        response_filepath = relative_file_path
+        try:
+            upload_result = cloudinary.uploader.upload(image_bytes)
+            secure_url = upload_result.get("secure_url")
+            
+            background_tasks.add_task(
+                background_save_prediction,
+                filename=file.filename,
+                file_path=secure_url,
+                prediction=result.label,
+                class_index=result.class_index,
+                probabilities=result.probabilities,
+                accuracy=result.confidence
+            )
+            
+            response_filepath = secure_url
+        except Exception as e:
+            logger.error("Failed to upload image to Cloudinary: %s", e)
+            return {
+                "filename": file.filename,
+                "imgUrl": "",
+                "prediction": "",
+                "probability": [],
+                "class_index": -1,
+                "accuracy": 0.0,
+                "status": "error",
+                "error": "Image upload failed. Please try again."
+            }
 
     # Note: We omit 'id' from the response as it is generated asynchronously by DB
     return {
