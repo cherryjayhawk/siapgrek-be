@@ -13,11 +13,11 @@
 #define CONFIG_MQTT_PORT          1883
 #define CONFIG_MQTT_USER          "orchid_device"
 #define CONFIG_MQTT_PASS          "Orchid2026"
-#define CONFIG_MQTT_CLIENT_ID     "siapgrek_node1"
+#define CONFIG_MQTT_CLIENT_ID     "siapgrek_node01"
 
 // --- Device Identity ---
 // This must match what the backend expects in topic paths
-#define CONFIG_DEVICE_ID          "node1"
+#define CONFIG_DEVICE_ID          "node01"
 
 // --- MQTT Topic Patterns ---
 // Publish:   orchid/{device_id}/telemetry

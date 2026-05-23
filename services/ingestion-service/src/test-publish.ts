@@ -30,7 +30,7 @@ client.on("connect", () => {
         },
         soil_sensors: [
             {
-                slave_id: "thcph_1",
+                slave_id: "slave01",
                 temperature: 24.3 + Math.random() * 2,
                 humidity: 60.5 + Math.random() * 5,
                 ph: 6.2 + Math.random(),

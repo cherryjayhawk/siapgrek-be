@@ -196,7 +196,7 @@ export default function GrafikTanaman() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const query = `device_id=node1&range=${range}&bucket=${interval}&metric=env_temperature&metric=env_humidity&metric=light_lux&metric=soil_temperature&metric=soil_humidity&metric=soil_ph&metric=soil_conductivity`;
+        const query = `device_id=node01&range=${range}&bucket=${interval}&metric=env_temperature&metric=env_humidity&metric=light_lux&metric=soil_temperature&metric=soil_humidity&metric=soil_ph&metric=soil_conductivity`;
         const res = await fetch(`/api/history?${query}`);
         if (res.ok) {
           const json = await res.json();

@@ -23,7 +23,7 @@ function formatActuator(raw: string): string {
 export default function LogAktivitas() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deviceId, setDeviceId] = useState("node1");
+  const [deviceId, setDeviceId] = useState("node01");
 
   useEffect(() => {
     async function fetchLogs() {
@@ -82,7 +82,7 @@ export default function LogAktivitas() {
           onChange={(e) => setDeviceId(e.target.value)}
           className="border rounded-lg px-2.5 py-1 text-xs focus:outline-none bg-white"
         >
-          <option value="node1">node1</option>
+          <option value="node01">node01</option>
           <option value="node2">node2</option>
           <option value="node3">node3</option>
         </select>

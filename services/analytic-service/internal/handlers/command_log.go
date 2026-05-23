@@ -30,7 +30,7 @@ type CommandLogEntry struct {
 }
 
 // GetLogs returns command log entries filtered by device_id.
-// GET /api/v1/command-log?device_id=node1&limit=100
+// GET /api/v1/command-log?device_id=node01&limit=100
 func (h *CommandLogHandler) GetLogs(c *fiber.Ctx) error {
 	deviceID := c.Query("device_id")
 	if deviceID == "" {

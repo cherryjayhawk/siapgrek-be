@@ -54,7 +54,7 @@ export default function ControlMenuFloating() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          device_id: "node1",
+          device_id: "node01",
           actuator_kind: ctrl.kind,
           actuator_id: ctrl.actuatorId,
           value: newValue ? 1 : 0,

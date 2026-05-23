@@ -201,7 +201,7 @@ void readEnvSensor() {
  *   "light": { "lux": 0 },
  *   "soil_sensors": [
  *     {
- *       "slave_id": "thcph_1",
+ *       "slave_id": "slave01",
  *       "temperature": 24.5,
  *       "humidity": 62.0,
  *       "ph": 6.3,
@@ -241,7 +241,7 @@ void publishTelemetry() {
     if (soilReadOk) {
         JsonArray soilArr = doc.createNestedArray("soil_sensors");
         JsonObject s1 = soilArr.createNestedObject();
-        s1["slave_id"]    = "thcph_1";
+        s1["slave_id"]    = "slave01";
         s1["temperature"] = roundTo1(soilTemperature);
         s1["humidity"]    = roundTo1(soilHumidity);
         s1["ph"]          = roundTo1(soilPh);
@@ -273,9 +273,9 @@ void publishTelemetry() {
  *   "0" (OFF) or "1" (ON)
  *
  * Examples:
- *   orchid/node1/command/watering/valve1  → payload "1"  → turn on watering valve 1
- *   orchid/node1/command/misting/pump1   → payload "0"  → turn off misting pump 1
- *   orchid/node1/command/misting/pump2   → payload "1"  → turn on misting pump 2
+ *   orchid/node01/command/watering/valve1  → payload "1"  → turn on watering valve 1
+ *   orchid/node01/command/misting/pump1   → payload "0"  → turn off misting pump 1
+ *   orchid/node01/command/misting/pump2   → payload "1"  → turn on misting pump 2
  */
 void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     // Parse payload to integer
@@ -403,7 +403,7 @@ void connectMqtt() {
         if (mqtt.connect(CONFIG_MQTT_CLIENT_ID, CONFIG_MQTT_USER, CONFIG_MQTT_PASS)) {
             Serial.println(F("[mqtt] Connected!"));
 
-            // Subscribe to command topics: orchid/node1/command/+/+
+            // Subscribe to command topics: orchid/node01/command/+/+
             if (mqtt.subscribe(CONFIG_MQTT_SUB_COMMAND, 1)) {
                 Serial.printf("[mqtt] Subscribed to: %s\n", CONFIG_MQTT_SUB_COMMAND);
             } else {

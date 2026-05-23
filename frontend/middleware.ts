@@ -20,16 +20,16 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for Better Auth session cookie
-  const sessionToken =
-    request.cookies.get("better-auth.session_token")?.value ||
-    request.cookies.get("__Secure-better-auth.session_token")?.value;
+  // const sessionToken =
+  //   request.cookies.get("better-auth.session_token")?.value ||
+  //   request.cookies.get("__Secure-better-auth.session_token")?.value;
 
-  if (!sessionToken) {
-    // Redirect unauthenticated users to login
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+  // if (!sessionToken) {
+  //   // Redirect unauthenticated users to login
+  //   const loginUrl = new URL("/login", request.url);
+  //   loginUrl.searchParams.set("callbackUrl", pathname);
+  //   return NextResponse.redirect(loginUrl);
+  // }
 
   return NextResponse.next();
 }
