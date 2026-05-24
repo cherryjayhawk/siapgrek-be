@@ -67,20 +67,24 @@ export default function SensorCard({ icon, label, value, unit, square }: Props) 
     )
   }
 
-  // Mode dashboard — tidak diubah
+  // Mode dashboard
   return (
-    <div className="bg-white rounded-xl p-2.5 lg:p-3.5 w-[115px] lg:w-[150px] xl:w-[175px]">
-      <Image src={icon} alt={label} width={18} height={18} className="mb-1 lg:w-5 lg:h-5" />
-      <p className="text-gray-700 text-[9px] lg:text-[11px] mb-3 lg:mb-5">{label}</p>
-      <div className="flex items-end gap-0.5">
-        <span className="text-xl lg:text-2xl xl:text-3xl font-normal leading-none tracking-[-0.06em] tabular-nums">
-          {value}
-        </span>
-        {unit && <span className="text-gray-400 text-[9px] lg:text-xs xl:text-sm pb-0.5">{unit}</span>}
+    <div className="bg-white rounded-2xl p-4 lg:p-6 w-full flex flex-col justify-between shadow-sm min-h-[130px] lg:min-h-[160px]">
+      <div>
+        <Image src={icon} alt={label} width={24} height={24} className="mb-2 lg:w-7 lg:h-7" />
+        <p className="text-gray-500 text-xs lg:text-sm">{label}</p>
       </div>
-      <div className="flex items-center gap-1 mt-1.5">
-        <Image src={statusIcon[color]} alt={color} width={10} height={10} className="lg:w-3 lg:h-3" />
-        <p className="text-gray-600 text-[9px] lg:text-[10px]">{status}</p>
+      <div className="mt-4 lg:mt-6">
+        <div className="flex items-end gap-1">
+          <span className="text-3xl lg:text-4xl xl:text-[44px] font-normal leading-none tracking-[-0.04em] tabular-nums text-gray-800">
+            {value}
+          </span>
+          {unit && <span className="text-gray-400 text-sm lg:text-base xl:text-lg pb-0.5 lg:pb-1">{unit}</span>}
+        </div>
+        <div className="flex items-center gap-1.5 mt-3 lg:mt-4">
+          <Image src={statusIcon[color]} alt={color} width={12} height={12} className="lg:w-3.5 lg:h-3.5" />
+          <p className="text-gray-500 text-[10px] lg:text-xs">{status}</p>
+        </div>
       </div>
     </div>
   )

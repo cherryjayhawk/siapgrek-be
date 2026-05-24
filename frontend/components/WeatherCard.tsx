@@ -40,7 +40,7 @@ export default function WeatherCard() {
 
   return (
     <div className="relative bg-gradient-to-br from-[#14A5FF] to-[#02588E]
-      rounded-xl p-2.5 text-white w-full overflow-hidden">
+      rounded-2xl lg:rounded-3xl p-5 lg:p-6 text-white w-full overflow-hidden flex flex-col justify-between min-h-[140px] lg:min-h-[180px] shadow-sm">
 
       <Image
         src="/images/cuaca.svg" alt="cuaca" width={90} height={90}
@@ -48,28 +48,28 @@ export default function WeatherCard() {
       />
 
       <div className="relative z-10">
-        <div className="flex justify-between items-center mb-1">
-          <div className="flex items-center gap-1.5">
-            <Image src="/images/cuaca.svg" alt="cuaca" width={16} height={16} />
-            <h3 className="font-semibold text-[11px] lg:text-xs">Informasi Cuaca</h3>
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            <Image src="/images/cuaca.svg" alt="cuaca" width={24} height={24} />
+            <h3 className="font-semibold text-sm lg:text-base">Informasi Cuaca</h3>
           </div>
           <Link href="/location" className="text-white/80 hover:text-white transition">
-            <PencilLine size={16} />
+            <PencilLine size={18} />
           </Link>
         </div>
 
         {weather ? (
-          <>
-            <p className="text-lg lg:text-xl xl:text-2xl font-bold leading-tight">
+          <div className="mt-2 lg:mt-4">
+            <p className="text-xl lg:text-2xl xl:text-3xl font-bold leading-tight tracking-tight">
               {weather.temperature_2m}°C
             </p>
-            <p className="text-[9px] lg:text-[10px] opacity-90 truncate">{isLocationLoading ? "Mendeteksi lokasi..." : location}</p>
-            <div className="flex mt-1.5 text-[9px] lg:text-[10px] gap-1.5">
+            <p className="text-xs lg:text-sm opacity-90 truncate mt-1">{isLocationLoading ? "Mendeteksi lokasi..." : location}</p>
+            <div className="flex mt-2 lg:mt-3 text-xs lg:text-sm gap-2">
               <span>💨 {weather.windspeed_10m} km/h</span>
-              <span>|</span>
+              <span className="opacity-50">|</span>
               <span>💧 {weather.relative_humidity_2m}%</span>
             </div>
-          </>
+          </div>
         ) : (
           <p className="text-[10px] mt-1">Loading cuaca...</p>
         )}

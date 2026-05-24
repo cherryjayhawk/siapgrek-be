@@ -16,10 +16,7 @@ export default function Dashboard() {
   const [selectedSlave, setSelectedSlave] = useState("slave_01")
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [actuatorStatus, setActuatorStatus] = useState<{ misting: boolean; watering: boolean }>({
-    misting: false,
-    watering: false,
-  })
+  const [actuatorStatus, setActuatorStatus] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const fetchTelemetry = async () => {
@@ -52,17 +49,18 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchActuatorStatus = async () => {
       try {
-        const res = await fetch("/api/command-log?device_id=node01&limit=10")
+        const res = await fetch("/api/command-log?device_id=node01&limit=50")
         if (res.ok) {
           const json = await res.json()
           const logs = json.data || []
-          // Find the latest command for each actuator type
-          const latestMisting = logs.find((l: any) => l.actuator.includes("misting"))
-          const latestWatering = logs.find((l: any) => l.actuator.includes("watering"))
-          setActuatorStatus({
-            misting: latestMisting?.command_value === 1,
-            watering: latestWatering?.command_value === 1,
-          })
+          
+          const newStatus: Record<string, boolean> = {};
+          for (const log of logs) {
+             if (newStatus[log.actuator] === undefined) {
+                 newStatus[log.actuator] = log.command_value === 1;
+             }
+          }
+          setActuatorStatus(newStatus)
         }
       } catch (err) {
         console.error("Failed to fetch actuator status:", err)
@@ -92,7 +90,7 @@ export default function Dashboard() {
       <h1 className="text-sm sm:text-base lg:text-lg xl:text-xl font-bold">Dashboard Monitoring</h1>
 
       {/* TOP CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 w-full">
         <WeatherCard />
         <EnvironmentCard data={{
            temp: data?.env_temperature,
@@ -103,7 +101,7 @@ export default function Dashboard() {
       </div>
       
       {/* FLOATING FAB MENU */}
-      <ControlMenu />
+      <ControlMenu selectedSlave={selectedSlave} />
 
       {/* DROPDOWN + BUTTON */}
       <div className="flex items-center gap-2 lg:gap-3">
@@ -130,34 +128,34 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* AKTUATOR STATUS — now live */}
-      <div className="bg-gray-100 rounded-2xl p-2.5 w-fit">
-        <div className="flex gap-2 lg:gap-3">
-          <div className="bg-white rounded-xl px-2.5 py-2 w-[90px] sm:w-[100px] lg:w-[115px] shadow-sm">
+      {/* AKTUATOR STATUS */}
+      <div className="bg-gray-100/80 rounded-2xl p-3 w-fit">
+        <div className="flex gap-3 lg:gap-4">
+          <div className="bg-white rounded-xl px-4 py-3 w-[120px] sm:w-[130px] lg:w-[150px] shadow-sm">
             <div className="flex items-center gap-1.5 mb-1">
               <img src="/images/misting.svg" className="w-3 lg:w-4" />
-              <span className="text-[10px] lg:text-xs">Misting</span>
+              <span className="text-[10px] lg:text-xs">Misting ({parseInt(selectedSlave.replace("slave", ""))})</span>
             </div>
-            <div className={`text-sm lg:text-base font-semibold ${actuatorStatus.misting ? "text-green-600" : "text-red-700"}`}>
-              {actuatorStatus.misting ? "ON" : "OFF"}
+            <div className={`text-sm lg:text-base font-semibold ${actuatorStatus[`misting/pump${selectedSlave.replace("slave", "")}`] ? "text-green-600" : "text-red-700"}`}>
+              {actuatorStatus[`misting/pump${selectedSlave.replace("slave", "")}`] ? "ON" : "OFF"}
             </div>
           </div>
-          <div className="bg-white rounded-xl px-2.5 py-2 w-[90px] sm:w-[100px] lg:w-[115px] shadow-sm">
+          <div className="bg-white rounded-xl px-4 py-3 w-[120px] sm:w-[130px] lg:w-[150px] shadow-sm">
             <div className="flex items-center gap-1.5 mb-1">
               <img src="/images/watering.svg" className="w-3 lg:w-4" />
-              <span className="text-[10px] lg:text-xs">Watering</span>
+              <span className="text-[10px] lg:text-xs">Watering ({parseInt(selectedSlave.replace("slave", ""))})</span>
             </div>
-            <div className={`text-sm lg:text-base font-semibold ${actuatorStatus.watering ? "text-green-600" : "text-red-700"}`}>
-              {actuatorStatus.watering ? "ON" : "OFF"}
+            <div className={`text-sm lg:text-base font-semibold ${actuatorStatus[`watering/valve${selectedSlave.replace("slave", "")}`] ? "text-green-600" : "text-red-700"}`}>
+              {actuatorStatus[`watering/valve${selectedSlave.replace("slave", "")}`] ? "ON" : "OFF"}
             </div>
           </div>
         </div>
       </div>
 
       {/* SENSOR CARDS */}
-      <div className="overflow-x-auto pb-1">
-        <div className="bg-gray-100 rounded-2xl lg:rounded-3xl p-3 lg:p-5 w-fit">
-          <div className="flex gap-3 lg:gap-5">
+      <div className="w-full pb-1">
+        <div className="bg-gray-100/80 rounded-3xl p-4 lg:p-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             <SensorCard icon="/images/temp.svg" label="Suhu Tanah" value={currentSoil.soil_temperature != null ? Number(currentSoil.soil_temperature).toFixed(2) : "-"} unit="°C" />
             <SensorCard icon="/images/moist.svg" label="Kelembapan Tanah" value={currentSoil.soil_humidity != null ? Number(currentSoil.soil_humidity).toFixed(2) : "-"} unit="%" />
             <SensorCard icon="/images/ph.svg" label="pH" value={currentSoil.soil_ph != null ? Number(currentSoil.soil_ph).toFixed(2) : "-"} />

@@ -21,7 +21,7 @@ export default function RecommendationCard({ sensorData }: Props) {
   return (
     <>
       <div className="relative bg-gradient-to-br from-[#AE2D7B] to-[#64003C]
-        rounded-xl p-2.5 text-white w-full overflow-hidden">
+        rounded-2xl lg:rounded-3xl p-5 lg:p-6 text-white w-full overflow-hidden flex flex-col justify-between min-h-[140px] lg:min-h-[180px] shadow-sm">
 
         <Image
           src="/images/rekomendasi.svg" alt="bg" width={90} height={90}
@@ -29,24 +29,24 @@ export default function RecommendationCard({ sensorData }: Props) {
         />
 
         <div className="relative z-10 flex flex-col justify-between h-full">
-          <div className="flex justify-between items-center mb-1">
-            <div className="flex items-start gap-1.5">
-              <Image src="/images/rekomendasi.svg" alt="" width={16} height={16} className="mt-0.5" />
-              <h3 className="font-semibold text-[11px] lg:text-xs">Rekomendasi</h3>
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-start gap-2">
+              <Image src="/images/rekomendasi.svg" alt="" width={24} height={24} />
+              <h3 className="font-semibold text-sm lg:text-base">Rekomendasi</h3>
             </div>
             <Link href="/knowledge" aria-label="Edit Dokumen" className="text-white/80 hover:text-white transition">
-              <PencilLine size={16} />
+              <PencilLine size={18} />
             </Link>
           </div>
 
-          <p className="text-[9px] lg:text-[10px] opacity-90 mt-1 lg:mt-1.5">
+          <p className="text-xs lg:text-sm opacity-90 mt-2">
             Lihat saran perlakuan untuk tiap tanaman anggrek kamu
           </p>
 
           <button
             onClick={() => setOpen(true)}
-            className="mt-2 lg:mt-3 bg-white text-[#64003C] text-[9px] lg:text-[10px]
-              font-medium rounded-md py-1 lg:py-1.5 hover:bg-gray-100 transition"
+            className="mt-4 bg-white text-[#64003C] text-xs lg:text-sm
+              font-medium rounded-lg py-2 lg:py-2.5 hover:bg-gray-100 transition shadow-sm w-full"
           >
             Lihat Rekomendasi
           </button>

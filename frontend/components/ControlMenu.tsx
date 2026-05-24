@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 
 type ActuatorControl = {
@@ -12,40 +12,44 @@ type ActuatorControl = {
   state: boolean;
 };
 
-export default function ControlMenuFloating() {
+type Props = {
+  selectedSlave: string;
+};
+
+export default function ControlMenuFloating({ selectedSlave }: Props) {
   const [open, setOpen] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
+  
+  // Extract index, e.g., "slave02" -> "02"
+  const slaveIndex = selectedSlave.replace("slave", "");
 
-  const [controls, setControls] = useState<ActuatorControl[]>([
-    {
-      id: "watering_valve01",
-      kind: "watering",
-      actuatorId: "valve01",
-      label: "Penyiraman (Valve 1)",
-      desc: "Siram pot & akar tanaman 1",
-      icon: "💧",
-      state: false,
-    },
-    {
-      id: "misting_pump01",
-      kind: "misting",
-      actuatorId: "pump01",
-      label: "Misting (Pump 1)",
-      desc: "Semprot kabut untuk kelembapan",
-      icon: "🌫️",
-      state: false,
-    },
-    {
-      id: "misting_pump02",
-      kind: "misting",
-      actuatorId: "pump02",
-      label: "Misting (Pump 2)",
-      desc: "Semprot kabut sekunder",
-      icon: "🌫️",
-      state: false,
-    },
-  ]);
+  // Default initial controls for the specific slave
+  const [controls, setControls] = useState<ActuatorControl[]>([]);
+
+  // Keep controls synced with selectedSlave
+  useEffect(() => {
+    setControls([
+      {
+        id: `watering_valve${slaveIndex}`,
+        kind: "watering",
+        actuatorId: `valve${slaveIndex}`,
+        label: `Penyiraman (Valve ${parseInt(slaveIndex)})`,
+        desc: `Siram pot & akar tanaman ${parseInt(slaveIndex)}`,
+        icon: "💧",
+        state: false,
+      },
+      {
+        id: `misting_pump${slaveIndex}`,
+        kind: "misting",
+        actuatorId: `pump${slaveIndex}`,
+        label: `Misting (Pump ${parseInt(slaveIndex)})`,
+        desc: "Semprot kabut untuk kelembapan",
+        icon: "🌫️",
+        state: false,
+      },
+    ]);
+  }, [slaveIndex]);
 
   const sendCommand = useCallback(async (ctrl: ActuatorControl, newValue: boolean) => {
     setSending(ctrl.id);

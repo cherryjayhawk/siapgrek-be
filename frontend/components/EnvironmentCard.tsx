@@ -9,7 +9,7 @@ type EnvData = {
 export default function EnvironmentCard({ data }: { data?: EnvData }) {
   return (
     <div className="relative bg-gradient-to-br from-[#00BD6E] to-[#007E45]
-      rounded-xl p-2.5 text-white w-full overflow-hidden">
+      rounded-2xl lg:rounded-3xl p-5 lg:p-6 text-white w-full overflow-hidden flex flex-col justify-between min-h-[140px] lg:min-h-[180px] shadow-sm">
 
       <svg
         width="120" height="110" viewBox="0 0 24 24"
@@ -20,26 +20,26 @@ export default function EnvironmentCard({ data }: { data?: EnvData }) {
       </svg>
 
       <div className="relative z-10">
-        <div className="flex items-center gap-1.5 mb-2 lg:mb-3">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+        <div className="flex items-center gap-2 mb-2 lg:mb-3">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
             <path d="M2.5 27.5V25C2.5 25 8.75 22.5 15 22.5C21.25 22.5 27.5 25 27.5 25V27.5H2.5ZM14.125 11.375C12.625 6.50001 5 7.62501 5 7.62501C5 7.62501 5.25 17.375 12.375 15.875C11.875 12.25 10 11.25 10 11.25C13.5 11.25 13.75 15.5 13.75 15.5V21.25H16.25V16C16.25 16 16.25 11.125 20 9.87501C20 9.87501 17.5 13.625 17.5 16.125C26.25 17 26.25 5.00001 26.25 5.00001C26.25 5.00001 15.125 3.75001 14.125 11.375Z"/>
           </svg>
-          <h3 className="font-semibold text-[11px] lg:text-xs">Informasi Lingkungan</h3>
+          <h3 className="font-semibold text-sm lg:text-base">Informasi Lingkungan</h3>
         </div>
 
         {data ? (
           <div className="flex justify-between">
             <div>
-              <p className="text-[9px] lg:text-[10px] opacity-80">Suhu</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.temp != null ? Number(data.temp).toFixed(2) : "-"}°C</p>
+              <p className="text-xs lg:text-sm opacity-90 mb-1">Suhu</p>
+              <p className="text-xl lg:text-2xl font-bold">{data.temp != null ? Number(data.temp).toFixed(2) : "-"}°C</p>
             </div>
             <div>
-              <p className="text-[9px] lg:text-[10px] opacity-80">Kelembapan</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.humidity != null ? Number(data.humidity).toFixed(2) : "-"}%</p>
+              <p className="text-xs lg:text-sm opacity-90 mb-1">Kelembapan</p>
+              <p className="text-xl lg:text-2xl font-bold">{data.humidity != null ? Number(data.humidity).toFixed(2) : "-"}%</p>
             </div>
             <div>
-              <p className="text-[9px] lg:text-[10px] opacity-80">Cahaya</p>
-              <p className="text-sm lg:text-base xl:text-lg font-bold">{data.lux != null ? Number(data.lux).toFixed(2) : "-"}</p>
+              <p className="text-xs lg:text-sm opacity-90 mb-1">Cahaya</p>
+              <p className="text-xl lg:text-2xl font-bold">{data.lux != null ? Number(data.lux).toFixed(2) : "-"} lux</p>
             </div>
           </div>
         ) : (
