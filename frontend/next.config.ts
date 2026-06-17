@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
         destination: `${getUrl('3003')}/predictions`,
       },
       {
+        source: "/api/predictions/:id",
+        destination: `${getUrl('3003')}/predictions/:id`,
+      },
+      {
         source: "/api/insights",
         destination: `${getUrl('3003')}/api/v1/insights`,
       },

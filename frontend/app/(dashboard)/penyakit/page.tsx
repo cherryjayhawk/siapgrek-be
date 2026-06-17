@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 
 // Maps the disease class name to a color scheme for badges
 const diseaseColor: Record<string, string> = {
@@ -57,6 +57,22 @@ export default function Penyakit() {
   }, []);
 
   const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleDelete = async (id: string | number) => {
+    if (!confirm("Hapus data pemindaian ini?")) return;
+    try {
+      const res = await fetch(`/api/predictions/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setRows((prev) => prev.filter((r) => r.id !== id));
+      } else {
+        console.error("Failed to delete prediction:", await res.text());
+        alert("Gagal menghapus data");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Terjadi kesalahan saat menghapus");
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -153,7 +169,7 @@ export default function Penyakit() {
           <table className="w-full text-xs lg:text-sm text-left text-gray-700">
             <thead>
               <tr className="border-b border-gray-200">
-                {["No", "Gambar", "Hasil", "Akurasi", "Probabilitas", "Tanggal"].map(h => (
+                {["No", "Gambar", "Hasil", "Akurasi", "Probabilitas", "Tanggal", "Aksi"].map(h => (
                   <th key={h} className="py-2.5 pr-4 font-semibold text-gray-600">{h}</th>
                 ))}
               </tr>
@@ -161,7 +177,7 @@ export default function Penyakit() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-400 text-xs">
+                  <td colSpan={7} className="py-8 text-center text-gray-400 text-xs">
                     Belum ada data. Unggah foto untuk mulai klasifikasi.
                   </td>
                 </tr>
@@ -189,6 +205,15 @@ export default function Penyakit() {
                     </div>
                   </td>
                   <td className="py-2.5 pr-4 whitespace-nowrap">{row.date}</td>
+                  <td className="py-2.5 pr-4">
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                      title="Hapus"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -215,7 +240,15 @@ export default function Penyakit() {
                   <span className={`inline-block rounded-full text-white text-[10px] px-2 py-0.5 ${getBadgeColor(row.prediction)}`}>
                     {row.prediction}
                   </span>
-                  <span className="text-[10px] text-gray-400">{row.date}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-400">{row.date}</span>
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      className="p-1 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded transition"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[11px] text-gray-500">Akurasi: <span className="font-semibold text-gray-700">{formatAccuracy(row.accuracy)}</span></p>
                 <div className="flex gap-1 mt-0.5">

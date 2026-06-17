@@ -252,6 +252,17 @@ def get_predictions(db: Session = Depends(get_db)):
     return result
 
 
+@app.delete("/predictions/{record_id}")
+def delete_prediction(record_id: int, db: Session = Depends(get_db)):
+    """Delete a past prediction from the database."""
+    record = db.query(DiseaseLog).filter(DiseaseLog.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    
+    db.delete(record)
+    db.commit()
+    return {"status": "ok", "message": f"Record {record_id} deleted"}
+
 @app.post("/predict")
 async def predict(
     background_tasks: BackgroundTasks,
