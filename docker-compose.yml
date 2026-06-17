@@ -66,7 +66,18 @@ services:
       INGESTION_HTTP_PORT: "3005"
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
     ports:
-      - "3005:3005"
+      - "${INGESTION_HTTP_PORT:-3005}:3005"
+    networks:
+      - orchid-net
+
+  dummy-worker:
+    build:
+      context: ./services/dummy-worker
+      dockerfile: Dockerfile
+    container_name: orchid-dummy-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
     networks:
       - orchid-net
 
