@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { momoTrust } from "@/lib/fonts";
 import Snackbar from "@/components/Snackbar";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Download, Trash2 } from "lucide-react";
 
 export default function KnowledgePage() {
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +72,10 @@ export default function KnowledgePage() {
     setDocLoading(false);
   };
 
+  const handleDownloadDoc = (id: string) => {
+    window.open(`/api/knowledge/documents/${id}/download`, "_blank");
+  };
+
   return (
     <div className="w-full max-w-xl pb-20">
       <div className="flex items-center gap-3 mb-5 lg:mb-7">
@@ -114,13 +118,24 @@ export default function KnowledgePage() {
                     <span className="text-sm text-gray-700 font-medium truncate block">{doc.title}</span>
                     <span className="text-[10px] text-gray-400 mt-1 block">Tersimpan</span>
                 </div>
-                <button 
-                  onClick={() => handleDeleteDoc(doc.id)} 
-                  disabled={docLoading}
-                  className="text-xs bg-red-50 text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium transition"
-                >
-                  Hapus
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleDownloadDoc(doc.id)} 
+                    disabled={docLoading}
+                    className="p-2 text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-800 rounded-lg transition"
+                    title="Unduh Dokumen"
+                  >
+                    <Download size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteDoc(doc.id)} 
+                    disabled={docLoading}
+                    className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                    title="Hapus Dokumen"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             ))
           )}

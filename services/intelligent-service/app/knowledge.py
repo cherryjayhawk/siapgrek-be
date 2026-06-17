@@ -4,6 +4,7 @@ import logging
 from typing import List, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from openai import OpenAI
 
@@ -105,6 +106,20 @@ def delete_document(doc_id: str, db: Session = Depends(get_db)):
     db.delete(doc)
     db.commit()
     return {"status": "ok"}
+
+@router.get("/documents/{doc_id}/download")
+def download_document(doc_id: str, db: Session = Depends(get_db)):
+    doc = db.query(KnowledgeDocument).filter(KnowledgeDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Safe fallback if title is missing
+    filename = doc.title if doc.title else f"document-{doc_id}.md"
+    
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"'
+    }
+    return Response(content=doc.content, media_type="text/markdown", headers=headers)
 
 class SearchRequest(BaseModel):
     query: str
