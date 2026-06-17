@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Cropper from "react-easy-crop";
 import { momoTrust } from "@/lib/fonts";
-import { useUser } from "@/context/UserContext";
+import { useSession, authClient } from "@/lib/auth-client";
 import Snackbar from "@/components/Snackbar";
 import { ChevronLeft } from "lucide-react";
 
@@ -12,22 +12,25 @@ type Props = { onBack?: () => void };
 
 export default function Profile({ onBack }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
-  const { profileImage, setProfileImage, username, setUsername } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
 
-  const [form, setForm] = useState({ name: username, email: "haileywilliams@gmail.com", gender: "Perempuan", domisili: "Bandung", lat: -6.920207, lon: 107.772969 });
-  const [image, setImage] = useState(profileImage);
+  const [form, setForm] = useState({ name: "", email: "" });
+  const [image, setImage] = useState("/images/avatar.jpg");
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [showCrop, setShowCrop] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "success" as "success" | "error" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setForm(prev => ({ ...prev, name: username }));
-    setImage(profileImage);
-  }, [username, profileImage]);
+    if (user) {
+      setForm({ name: user.name || "", email: user.email || "" });
+      if (user.image) setImage(user.image);
+    }
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -63,19 +66,34 @@ export default function Profile({ onBack }: Props) {
   const handleSaveCrop = async () => {
     try {
       const cropped = await getCroppedImg(tempImage!, croppedAreaPixels);
-      setImage(cropped); setProfileImage(cropped);
-      setSnackbar({ open: true, message: "Foto profil berhasil diperbarui", type: "success" });
+      setImage(cropped);
+      setSnackbar({ open: true, message: "Foto profil dipotong, klik simpan untuk memperbarui profil", type: "success" });
       setShowCrop(false);
     } catch {
       setSnackbar({ open: true, message: "Gagal crop gambar", type: "error" });
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.email) { setSnackbar({ open: true, message: "Data belum lengkap", type: "error" }); return; }
-    setUsername(form.name);
-    // Ideally we would save lat/lon to DB here
-    setSnackbar({ open: true, message: "Profil berhasil disimpan", type: "success" });
+    
+    setSaving(true);
+    try {
+      const { data, error } = await authClient.updateUser({
+        name: form.name,
+        image: image !== "/images/avatar.jpg" ? image : undefined
+      });
+      
+      if (error) {
+        setSnackbar({ open: true, message: error.message || "Gagal memperbarui profil", type: "error" });
+      } else {
+        setSnackbar({ open: true, message: "Profil berhasil disimpan", type: "success" });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: "Terjadi kesalahan sistem", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputClass = "w-full rounded-full border border-gray-200 px-4 py-2.5 lg:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
@@ -135,28 +153,21 @@ export default function Profile({ onBack }: Props) {
       {/* FORM */}
       <div className="space-y-3">
         {[
-          { label: "Nama Lengkap", name: "name",     type: "text"  },
-          { label: "Email",        name: "email",    type: "email" },
-          { label: "Domisili",     name: "domisili", type: "text"  },
+          { label: "Nama Lengkap", name: "name",     type: "text", disabled: false  },
+          { label: "Email",        name: "email",    type: "email", disabled: true },
         ].map(field => (
           <div key={field.name}>
             <label className="block text-gray-700 mb-1 text-xs lg:text-sm font-medium">{field.label}</label>
             <input type={field.type} name={field.name} value={(form as any)[field.name]}
-              onChange={handleChange} className={inputClass} />
+              onChange={handleChange} disabled={field.disabled} 
+              className={`${inputClass} ${field.disabled ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`} />
           </div>
         ))}
-        <div>
-          <label className="block text-gray-700 mb-1 text-xs lg:text-sm font-medium">Jenis Kelamin</label>
-          <select name="gender" value={form.gender} onChange={handleChange} className={inputClass}>
-            <option>Perempuan</option>
-            <option>Laki-laki</option>
-          </select>
-        </div>
       </div>
 
-      <button onClick={handleSave}
-        className="w-full mt-5 rounded-full bg-primary py-2.5 lg:py-3 text-white text-sm lg:text-base font-semibold hover:bg-primary/80 transition">
-        Simpan
+      <button onClick={handleSave} disabled={saving}
+        className="w-full mt-5 rounded-full bg-primary py-2.5 lg:py-3 text-white text-sm lg:text-base font-semibold hover:bg-primary/80 transition disabled:opacity-70">
+        {saving ? "Menyimpan..." : "Simpan"}
       </button>
 
       <Snackbar open={snackbar.open} message={snackbar.message} type={snackbar.type}

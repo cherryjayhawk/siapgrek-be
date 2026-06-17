@@ -9,9 +9,8 @@ type UserContextType = {
   username: string;
   setUsername: (name: string) => void;
   lat: number;
-  setLat: (lat: number) => void;
   lon: number;
-  setLon: (lon: number) => void;
+  updateLocation: (lat: number, lon: number) => Promise<{error?: any}>;
   isAuthenticated: boolean;
   isLoading: boolean;
 };
@@ -22,9 +21,8 @@ const UserContext = createContext<UserContextType>({
   username: "User",
   setUsername: () => {},
   lat: -6.920207,
-  setLat: () => {},
   lon: 107.772969,
-  setLon: () => {},
+  updateLocation: async () => ({}),
   isAuthenticated: false,
   isLoading: true,
 });
@@ -70,14 +68,18 @@ export function UserProvider({
     // Optionally sync back to auth-service via API if needed
   };
 
-  const handleSetLat = (newLat: number) => {
+  const handleUpdateLocation = async (newLat: number, newLon: number) => {
+    // Optimistic UI update
     setLat(newLat);
-    updateUser({ lat: newLat } as any);
-  };
-
-  const handleSetLon = (newLon: number) => {
     setLon(newLon);
-    updateUser({ lon: newLon } as any);
+    
+    // Unified API call to Better Auth to avoid race conditions
+    const { error } = await updateUser({ lat: newLat, lon: newLon } as any);
+    if (error) {
+      // Revert if error (Optional: could track original lat/lon to revert to)
+      console.error("Failed to update location in DB", error);
+    }
+    return { error };
   };
 
   return (
@@ -88,9 +90,8 @@ export function UserProvider({
         username,
         setUsername: handleSetUsername,
         lat,
-        setLat: handleSetLat,
         lon,
-        setLon: handleSetLon,
+        updateLocation: handleUpdateLocation,
         isAuthenticated: !!session?.user,
         isLoading: isPending,
       }}

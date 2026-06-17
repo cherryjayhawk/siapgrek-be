@@ -9,13 +9,16 @@ import dynamic from 'next/dynamic';
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
 export default function LocationPage() {
-  const { lat, lon, setLat, setLon } = useUser();
+  const { lat, lon, updateLocation } = useUser();
   const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "success" as "success" | "error" });
 
-  const handleLocationChange = (newLat: number, newLon: number) => {
-    setLat(newLat);
-    setLon(newLon);
-    setSnackbar({ open: true, message: "Lokasi berhasil disimpan & disinkronisasi", type: "success" });
+  const handleLocationChange = async (newLat: number, newLon: number) => {
+    const { error } = await updateLocation(newLat, newLon);
+    if (error) {
+      setSnackbar({ open: true, message: "Gagal menyimpan lokasi ke database", type: "error" });
+    } else {
+      setSnackbar({ open: true, message: "Lokasi berhasil disimpan & disinkronisasi", type: "success" });
+    }
   };
 
   return (
