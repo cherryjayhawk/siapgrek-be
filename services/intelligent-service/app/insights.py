@@ -16,65 +16,7 @@ from typing import Any
 
 from openai import AsyncOpenAI
 
-from app.core.config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS
-from app.mcp_client import MCPClient
-
-logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# System prompt
-# ---------------------------------------------------------------------------
-SYSTEM_PROMPT = """\
-You are **SiapGrek AI**, an expert agricultural assistant specialising in \
-orchid greenhouse management.
-
-Your role is to provide personalised, actionable insights and recommendations \
-to the greenhouse operator. You have access to a set of live tools that can \
-query greenhouse data in real-time:
-
-• **preference** – Retrieves uploaded agricultural knowledge documents \
-  containing user preferences and domain knowledge.
-• **sensor_history** – Queries historical sensor telemetry (soil temperature, \
-  soil humidity, environmental temperature/humidity, lux, pH, EC).
-• **disease_log** – Retrieves plant disease classification records.
-• **latest_sensor_data** – Retrieves the most recent sensor telemetry reading from TimescaleDB. Returns the absolute latest environmental and soil data snapshot.
-• **weather_forecast** – Fetches weather forecast data from OpenWeatherMap using geographic coordinates (latitude and longitude). Provides external environmental context for agricultural decision-making.
-
-**Guidelines:**
-1. Always fetch relevant data using the tools before answering.
-2. Provide concise and short, but comprehensive insights.
-3. If a tool call fails, inform the user that live data is temporarily \
-   unavailable but still provide general best-practice advice.
-4. Never fabricate sensor readings or database records.
-5. If all is well, write a short positive sentence.
-6. Use the Indonesian and/or English language based on what the user uses.
-7. Don't use bullet points if unnecessary.
-8. Don't use emoji.
-9. Don't ask back to user.
-10. Use markdown formatting.
-"""
-
-
-# ---------------------------------------------------------------------------
-"""
-Insight orchestration — bridges OpenAI LLM with MCP tools.
-
-Flow:
-  1. User query arrives via REST endpoint.
-  2. System prompt grounds the LLM as an orchid greenhouse expert.
-  3. OpenAI receives the prompt + tools (from MCP).
-  4. If OpenAI requests tool calls, we proxy them via MCPClient.call_tool(),
-     append results, and re-query until a final text answer is yielded.
-"""
-
-import json
-import logging
-from dataclasses import dataclass, field
-from typing import Any
-
-from openai import AsyncOpenAI
-
-from app.core.config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS
+from app.core.config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS, GEMINI_API_KEY, GEMINI_MODEL
 from app.mcp_client import MCPClient
 
 logger = logging.getLogger(__name__)
@@ -137,7 +79,8 @@ class InsightOrchestrator:
 
     def __init__(self, mcp_client: MCPClient) -> None:
         self._mcp = mcp_client
-        self._openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        # self._openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        self._openai = AsyncOpenAI(api_key=GEMINI_API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")  # Use Gemini API key for OpenAI calls
 
     async def generate(self, query: str, lat: float, lon: float) -> InsightResult:
         """
@@ -203,7 +146,8 @@ class InsightOrchestrator:
 
         try:
             response = await self._openai.chat.completions.create(
-                model=OPENAI_MODEL,
+                # model=OPENAI_MODEL,
+                model=GEMINI_MODEL,  # Use Gemini model for OpenAI calls
                 messages=messages,
                 max_completion_tokens=OPENAI_MAX_TOKENS
             )

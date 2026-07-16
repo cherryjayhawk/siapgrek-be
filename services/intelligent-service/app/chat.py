@@ -16,7 +16,7 @@ from typing import Any
 
 from openai import AsyncOpenAI
 
-from app.core.config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS
+from app.core.config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS, GEMINI_API_KEY, GEMINI_MODEL
 from app.mcp_client import MCPClient
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,8 @@ class ChatbotOrchestrator:
 
     def __init__(self, mcp_client: MCPClient) -> None:
         self._mcp = mcp_client
-        self._openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        # self._openai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        self._openai = AsyncOpenAI(api_key=GEMINI_API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")  # Use Gemini API key for OpenAI calls
 
     async def generate(self, conversation_history: list[dict[str, str]]) -> ChatResult:
         """
@@ -102,7 +103,8 @@ class ChatbotOrchestrator:
         for _ in range(max_iterations):
             try:
                 kwargs: dict[str, Any] = {
-                    "model": OPENAI_MODEL,
+                    # "model": OPENAI_MODEL,
+                    "model": GEMINI_MODEL,  # Use Gemini model for OpenAI calls
                     "messages": messages,
                     "max_completion_tokens": OPENAI_MAX_TOKENS
                 }

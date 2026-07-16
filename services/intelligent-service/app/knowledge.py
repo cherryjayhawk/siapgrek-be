@@ -10,7 +10,7 @@ from openai import OpenAI
 
 from app.core.database import get_db
 from app.db.models import KnowledgeDocument, KnowledgeChunk
-from app.core.config import OPENAI_API_KEY
+from app.core.config import OPENAI_API_KEY, GEMINI_API_KEY
 
 from langchain_text_splitters import MarkdownTextSplitter
 
@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/knowledge", tags=["knowledge"])
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+# client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=GEMINI_API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")  # Use Gemini API key for OpenAI calls
 
 class DocumentResponse(BaseModel):
     id: str
