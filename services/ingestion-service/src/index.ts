@@ -1,3 +1,16 @@
+// --- Global Logger Override for Timestamps ---
+const _origLog = console.log;
+const _origWarn = console.warn;
+const _origError = console.error;
+const _formatTime = () => {
+    const d = new Date();
+    return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+};
+console.log = (...args) => _origLog(`[${_formatTime()}]`, ...args);
+console.warn = (...args) => _origWarn(`[${_formatTime()}]`, ...args);
+console.error = (...args) => _origError(`[${_formatTime()}]`, ...args);
+// ---------------------------------------------
+
 import { initDatabase } from "./db/repository";
 import { checkDbConnection } from "./db/client";
 import { initMqttClient } from "./mqtt/client";

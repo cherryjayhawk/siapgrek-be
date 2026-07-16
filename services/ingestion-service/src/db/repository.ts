@@ -36,17 +36,31 @@ export async function initDatabase(): Promise<void> {
             )
         `;
 
-        // Wait, since we are using Neon (standard Postgres basically, or open-source Timescale), 
-        // we should create hypertables if possible.
         try {
-            await sql`SELECT create_hypertable('env_telemetry', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE)`;
-            await sql`SELECT create_hypertable('soil_telemetry', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE)`;
+            await sql`
+                SELECT create_hypertable(
+                    'env_telemetry',
+                    by_range('time', INTERVAL '1 day'),
+                    if_not_exists => TRUE
+                )
+            `;
+
+            await sql`
+                SELECT create_hypertable(
+                    'soil_telemetry',
+                    by_range('time', INTERVAL '1 day'),
+                    if_not_exists => TRUE
+                )
+            `;
+
             console.log("[db] TimescaleDB hypertables initialized successfully.");
         } catch (e) {
-            console.warn("[db] Could not create hypertables (might not be supported on this Neon tier or extension is missing). Using standard tables.", e);
+            console.warn(
+                "[db] Could not create hypertables. Using standard tables.",
+                e
+            );
         }
 
-        // Ensure command_log table exists (standard relational table)
         await sql`
             CREATE TABLE IF NOT EXISTS command_log (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -57,24 +71,21 @@ export async function initDatabase(): Promise<void> {
                 source TEXT NOT NULL DEFAULT 'fuzzy-logic'
             )
         `;
+
         console.log("[db] Table 'command_log' initialized successfully.");
     } catch (err) {
-        console.error("[db] Failed to initialize 'telemetry' hypertable:", err);
+        console.error("[db] Failed to initialize telemetry tables:", err);
         throw err;
     }
 }
 
 /**
- * Perform a single insert of a sensor reading into the TimescaleDB hypertable.
- *
- * NOTE: Assumes `telemetry` table exists and is a configured hypertable.
- *
- * @param reading Flattened sensor reading
- * @returns Metadata about the inserted reading
+ * Insert a telemetry reading.
  */
 export async function insertTelemetrySingle(
     reading: SensorReading
 ): Promise<SingleInsertResult> {
+
     const envRow = {
         time: reading.env.timestamp,
         device_id: reading.env.deviceId,
@@ -86,14 +97,26 @@ export async function insertTelemetrySingle(
     let insertedCount = 0;
 
     try {
-        // Insert Environment Telemetry
+
+        console.log("========== TELEMETRY ==========");
+        console.dir(reading, { depth: null });
+
+        console.log("========== ENV ROW ==========");
+        console.dir(envRow, { depth: null });
+
         const envResult = await sql`
-      INSERT INTO env_telemetry ${sql(envRow)}
-    `;
+            INSERT INTO env_telemetry ${sql(envRow)}
+            ON CONFLICT DO NOTHING
+        `;
+
+        console.log(
+            `[repository] env inserted: ${envResult.count}`
+        );
+
         insertedCount += envResult.count;
 
-        // Insert Soil Telemetry
         if (reading.soil && reading.soil.length > 0) {
+
             const soilRows = reading.soil.map(s => ({
                 time: s.timestamp,
                 device_id: s.deviceId,
@@ -104,25 +127,115 @@ export async function insertTelemetrySingle(
                 soil_conductivity: s.soilConductivity,
             }));
 
+            console.log("========== SOIL ROWS ==========");
+            console.dir(soilRows, { depth: null });
+
             const soilResult = await sql`
                 INSERT INTO soil_telemetry ${sql(soilRows)}
+                ON CONFLICT (device_id, slave_id, time)
+                DO NOTHING
             `;
+
+            console.log(
+                `[repository] soil inserted: ${soilResult.count}`
+            );
+
             insertedCount += soilResult.count;
         }
+
+        console.log(
+            `[repository] total inserted: ${insertedCount}`
+        );
 
         return {
             insertedCount,
             timestamp: reading.env.timestamp,
             deviceId: reading.env.deviceId,
         };
+
     } catch (err) {
-        console.error("[repository] Single insert failed:", err);
+
+        console.error("========== INSERT FAILED ==========");
+        console.error(err);
+
+        console.log("========== PAYLOAD ==========");
+        console.dir(reading, { depth: null });
+
         throw err;
     }
 }
 
 /**
- * Insert a command log entry into the `command_log` table.
+ * Insert a batch of telemetry readings.
+ */
+export async function insertTelemetryBatch(
+    readings: SensorReading[]
+): Promise<SingleInsertResult> {
+    if (readings.length === 0) {
+        return { insertedCount: 0, timestamp: new Date(), deviceId: "batch_empty" };
+    }
+
+    const envRows = readings.map(r => ({
+        time: r.env.timestamp,
+        device_id: r.env.deviceId,
+        env_temperature: r.env.envTemperature,
+        env_humidity: r.env.envHumidity,
+        light_lux: Math.round(r.env.lightLux),
+    }));
+
+    let insertedCount = 0;
+
+    try {
+        const envResult = await sql`
+            INSERT INTO env_telemetry ${sql(envRows)}
+            ON CONFLICT DO NOTHING
+        `;
+
+        insertedCount += envResult.count;
+
+        const soilRows: any[] = [];
+        for (const reading of readings) {
+            if (reading.soil && reading.soil.length > 0) {
+                for (const s of reading.soil) {
+                    soilRows.push({
+                        time: s.timestamp,
+                        device_id: s.deviceId,
+                        slave_id: s.slaveId,
+                        soil_temperature: s.soilTemperature,
+                        soil_humidity: s.soilHumidity,
+                        soil_ph: s.soilPh,
+                        soil_conductivity: s.soilConductivity,
+                    });
+                }
+            }
+        }
+
+        if (soilRows.length > 0) {
+            const soilResult = await sql`
+                INSERT INTO soil_telemetry ${sql(soilRows)}
+                ON CONFLICT (device_id, slave_id, time)
+                DO NOTHING
+            `;
+            insertedCount += soilResult.count;
+        }
+
+        console.log(`[repository] Batch flushed: total ${insertedCount} rows inserted.`);
+
+        return {
+            insertedCount,
+            timestamp: readings[readings.length - 1].env.timestamp,
+            deviceId: "batch",
+        };
+
+    } catch (err) {
+        console.error("========== BATCH INSERT FAILED ==========");
+        console.error(err);
+        throw err;
+    }
+}
+
+/**
+ * Insert command log.
  */
 export interface CommandLogEntry {
     deviceId: string;
@@ -134,6 +247,7 @@ export interface CommandLogEntry {
 export async function insertCommandLog(
     entry: CommandLogEntry
 ): Promise<void> {
+
     const row = {
         id: crypto.randomUUID(),
         timestamp: new Date(),
@@ -144,12 +258,18 @@ export async function insertCommandLog(
     };
 
     try {
+
+        console.log("========== COMMAND ==========");
+        console.dir(row, { depth: null });
+
         await sql`
             INSERT INTO command_log ${sql(row)}
+            ON CONFLICT DO NOTHING
         `;
+
     } catch (err) {
+
         console.error("[repository] Command log insert failed:", err);
         throw err;
     }
 }
-
