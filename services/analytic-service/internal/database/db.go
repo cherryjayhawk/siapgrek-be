@@ -34,7 +34,8 @@ func Connect() (*pgxpool.Pool, error) {
 	config.MinConns = 2
 	config.MaxConnLifetime = 30 * time.Minute
 	config.MaxConnIdleTime = 5 * time.Minute
-	config.HealthCheckPeriod = 1 * time.Minute
+	// Disable periodic health checks so Neon can autosuspend freely
+	config.HealthCheckPeriod = 0
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

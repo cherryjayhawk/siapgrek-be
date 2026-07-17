@@ -1,0 +1,31 @@
+# Draft Tabel Evaluasi Recommendation Quality
+
+Catatan metodologi: tabel ini berisi jawaban sintetis/draft yang disusun untuk menyerupai gaya keluaran GPT-5.4 nano high pada pipeline SiapGrek, lalu disejajarkan dengan skor assessor GPT-5.4 xhigh yang sudah tercantum pada paper. Untuk pelaporan ilmiah final, kolom jawaban ini sebaiknya diganti atau divalidasi dengan hasil run aktual dari endpoint `/api/v1/insights` dan penilaian LLM-as-Judge aktual.
+
+## Basis Penyusunan
+
+- Format jawaban mengikuti system prompt `InsightOrchestrator`: wajib mulai dengan `Ringkasan:`, singkat, langsung memberi rekomendasi, tidak bertanya balik, tanpa emoji, dan menggunakan bahasa Indonesia.
+- Konteks tool mengikuti implementasi `knowledge-service` dan `intelligent-service`: `latest_sensor_data`, `weather_forecast`, `sensor_history`, `preference`, dan `disease_log`.
+- Preferensi budidaya diambil dari `panduan_budidaya_anggrek_cattleya.md`: suhu lingkungan ideal 22-30 C, RH ideal 50-70%, aktifkan misting saat suhu >30 C atau RH <50%, hentikan misting saat RH >75%, dan hindari misting besar 30-60 menit sebelum penutup kain turun pukul 16:00.
+
+## Asumsi Data Skenario
+
+| Scenario | Kondisi | Sensor terbaru | Konteks tambahan yang tersedia pada full context |
+|---|---|---|---|
+| 1 | Low Humidity Condition | Suhu lingkungan 31.8 C, RH lingkungan 43%, suhu tanah 24.1 C, RH tanah 52%, pH 6.62, EC 0.74 | Forecast tidak ada hujan dalam beberapa jam; histori menunjukkan RH sering turun saat siang; dokumen preferensi menyarankan RH 50-70% dan misting halus saat suhu >30 C atau RH <50%; disease log tidak menunjukkan penyakit terbaru. |
+| 2 | High Humidity Condition | Suhu lingkungan 26.4 C, RH lingkungan 82%, suhu tanah 23.5 C, RH tanah 74%, pH 6.50, EC 0.80 | Forecast menunjukkan hujan/kelembaban luar tinggi; histori menunjukkan RH bertahan >75%; dokumen preferensi menyarankan menghentikan misting dan meningkatkan ventilasi saat RH >75%; disease log tidak menunjukkan penyakit terbaru. |
+| 3 | Disease-Affected Condition | Suhu lingkungan 28.9 C, RH lingkungan 84%, suhu tanah 24.0 C, RH tanah 78%, pH 6.44, EC 0.82 | Forecast menunjukkan hujan dan kelembaban tinggi; histori menunjukkan kelembaban tinggi berkepanjangan; disease log terbaru mencatat BERCAK DAUN dengan confidence tinggi; dokumen preferensi menyarankan mengurangi kelembaban permukaan, memperbaiki ventilasi, isolasi tanaman bergejala, dan penggunaan fungisida bila perlu. |
+
+## Tabel Evaluasi
+
+| Scenario | Approach | Jawaban (GPT-5.4 nano high - simulasi) | Relevance | Context Awareness | Helpfullness |
+|---|---|---|---:|---:|---:|
+| 1 | Sensor-Only | Ringkasan: RH lingkungan saat ini 43% berada di bawah target, sementara suhu 31.8 C juga melewati batas nyaman. Rekomendasi: aktifkan misting untuk menaikkan kelembaban dan membantu menurunkan suhu, lalu pantau ulang sensor sampai RH kembali mendekati 50-70% dan suhu turun ke sekitar 30 C. Hindari penyiraman berlebihan pada media jika kelembaban tanah masih cukup. | 4 | 2 | 3 |
+| 1 | Partial-Context | Ringkasan: RH lingkungan 43% masih di bawah target dan suhu 31.8 C cukup panas; prakiraan cuaca tidak menunjukkan hujan dalam beberapa jam ke depan, jadi kelembaban tidak akan terbantu dari luar. Rekomendasi: jalankan misting ringan 1-2 menit tiap 20-30 menit, pantau kenaikan RH, dan hentikan saat RH mencapai minimal 50% atau suhu mendekati 30 C agar media tidak terlalu basah. | 5 | 4 | 5 |
+| 1 | Full-Context | Ringkasan: RH lingkungan 43% berada di bawah rentang ideal Cattleya 50-70% dan suhu 31.8 C melebihi target 22-30 C; histori menunjukkan penurunan RH berulang pada siang hari dan prakiraan tidak menunjukkan hujan. Rekomendasi: aktifkan misting halus 2 menit tiap 20 menit sampai suhu <=30 C dan RH >=50%, evaluasi ventilasi agar pendinginan merata, jangan membasahi media terus-menerus, dan hentikan misting besar 30-60 menit sebelum penutup kain turun pukul 16:00. | 5 | 5 | 5 |
+| 2 | Sensor-Only | Ringkasan: RH lingkungan saat ini 82% berada di atas rentang aman, sedangkan suhu 26.4 C masih normal. Rekomendasi: hentikan misting sementara, tingkatkan ventilasi, dan pantau ulang RH sampai turun mendekati 50-70%. Jangan menambah penyiraman karena kelembaban tinggi dapat membuat permukaan daun dan media terlalu basah. | 4 | 2 | 4 |
+| 2 | Partial-Context | Ringkasan: RH lingkungan 82% terlalu tinggi dan prakiraan menunjukkan hujan/kelembaban luar masih tinggi, sehingga kondisi lembap kemungkinan bertahan. Rekomendasi: hentikan misting, buka ventilasi atau kurangi penutupan area jika memungkinkan, tunda penyiraman tambahan, dan cek kembali sensor setelah periode hujan untuk memastikan RH turun ke 50-70%. | 5 | 4 | 5 |
+| 2 | Full-Context | Ringkasan: RH lingkungan 82% sudah melewati ambang hentikan misting (>75%), sementara suhu 26.4 C masih aman; histori beberapa jam terakhir menunjukkan kelembaban bertahan tinggi dan prakiraan hujan membuat penurunan RH lebih lambat. Rekomendasi: matikan misting, maksimalkan ventilasi, pastikan daun dan permukaan media kering sebelum penutup kain pukul 16:00, dan pantau risiko jamur karena Cattleya membutuhkan RH 50-70% dengan sirkulasi udara baik. | 5 | 5 | 5 |
+| 3 | Sensor-Only | Ringkasan: RH lingkungan 84% terlalu tinggi dan suhu 28.9 C masih dalam batas normal. Rekomendasi: hentikan misting sementara dan tingkatkan ventilasi agar kelembaban turun. Pantau sensor sampai RH kembali mendekati 70% sebelum misting diaktifkan lagi. | 3 | 1 | 2 |
+| 3 | Partial-Context | Ringkasan: RH lingkungan 84% tinggi dan prakiraan hujan dengan kelembaban luar tinggi dapat membuat kondisi basah bertahan lebih lama. Rekomendasi: hentikan misting, tunda penyiraman, tingkatkan ventilasi, dan pantau RH setelah hujan. Kondisi lembap perlu dikurangi agar tanaman tidak terlalu basah. | 4 | 3 | 3 |
+| 3 | Full-Context | Ringkasan: RH lingkungan 84% berada di atas ambang aman dan histori menunjukkan kelembaban tinggi berkepanjangan; disease log terbaru mencatat BERCAK DAUN dengan confidence tinggi, sehingga risiko jamur/penyakit daun perlu ditangani langsung. Rekomendasi: hentikan misting, tingkatkan ventilasi, pisahkan tanaman bergejala untuk inspeksi, buang jaringan terinfeksi bila perlu, gunakan fungisida sesuai SOP, dan pastikan daun/media mengering sebelum penutup kain pukul 16:00. | 5 | 5 | 5 |

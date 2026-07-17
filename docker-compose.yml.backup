@@ -70,6 +70,17 @@ services:
     networks:
       - orchid-net
 
+  dummy-worker:
+    build:
+      context: ./services/dummy-worker
+      dockerfile: Dockerfile
+    container_name: orchid-dummy-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - orchid-net
+
   # -------------------------------------------
   # Analytic Service (Go + Fiber) - Query Engine
   # -------------------------------------------
@@ -170,6 +181,7 @@ services:
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
       DATABASE_URL: ${DATABASE_URL}
       KNOWLEDGE_MCP_URL: http://knowledge-service:3000/mcp
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       CLOUDINARY_URL: ${CLOUDINARY_URL}
     networks:

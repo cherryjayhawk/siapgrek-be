@@ -35,5 +35,8 @@ KNOWLEDGE_MCP_URL: str = os.getenv("KNOWLEDGE_MCP_URL", "http://localhost:3002/m
 
 # --- OpenAI ---
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano-2025-08-07")
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+# use fast model
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano-2025-08-07") 
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 OPENAI_MAX_TOKENS: int = int(os.getenv("OPENAI_MAX_TOKENS", "4000"))

@@ -1,6 +1,6 @@
 import mqtt from "mqtt";
 import { validateTelemetry } from "../utils/validator";
-import { insertTelemetrySingle, insertCommandLog } from "../db/repository";
+import { insertTelemetrySingle, insertTelemetryBatch, insertCommandLog } from "../db/repository";
 
 import type { SensorReading } from "../schemas/telemetry.schema";
 
@@ -9,6 +9,26 @@ const MQTT_USERNAME = process.env.MQTT_USERNAME || "orchid_mqtt";
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "mqtt_secret_change_me";
 const MQTT_TELEMETRY_TOPIC = process.env.MQTT_TOPIC || "orchid/+/telemetry";
 const MQTT_COMMAND_TOPIC = "orchid/+/command/+/+";
+
+const BATCH_INTERVAL_MS = parseInt(process.env.BATCH_INTERVAL_MS || "600000", 10);
+const BUFFER_MAX_SIZE = parseInt(process.env.BUFFER_MAX_SIZE || "5000", 10);
+
+let telemetryBuffer: SensorReading[] = [];
+
+async function flushTelemetryBuffer() {
+    if (telemetryBuffer.length === 0) return;
+
+    const batch = [...telemetryBuffer];
+    telemetryBuffer = []; // reset buffer immediately
+
+    try {
+        console.log(`[mqtt] Flushing ${batch.length} telemetry readings to DB...`);
+        await insertTelemetryBatch(batch);
+    } catch (err) {
+        console.error(`[mqtt] Failed to flush batch to DB:`, err);
+        // Optionally add back to buffer or drop. We drop for now to avoid memory leaks on permanent DB failure.
+    }
+}
 
 export function initMqttClient(): mqtt.MqttClient {
     console.log(`[mqtt] Connecting to broker at ${MQTT_URL}...`);
@@ -85,7 +105,7 @@ export function initMqttClient(): mqtt.MqttClient {
         // 1. Zod validation wrapper (safe parse)
         const validData = validateTelemetry(message, deviceId);
 
-        // 2. If valid, insert to database immediately
+        // 2. If valid, add to buffer
         if (validData) {
             const timestamp = validData.timestamp || new Date();
             const reading: SensorReading = {
@@ -96,7 +116,7 @@ export function initMqttClient(): mqtt.MqttClient {
                     envHumidity: validData.environment.humidity,
                     lightLux: validData.light.lux,
                 },
-                soil: (validData.soil_sensors || []).map(s => ({
+                soil: (validData.soil_sensors || []).map((s: any) => ({
                     deviceId,
                     slaveId: s.slave_id,
                     timestamp,
@@ -107,13 +127,20 @@ export function initMqttClient(): mqtt.MqttClient {
                 })),
             };
 
-            try {
-                await insertTelemetrySingle(reading);
-            } catch (err) {
-                console.error(`[mqtt] Error processing telemetry for ${deviceId}:`, err);
+            telemetryBuffer.push(reading);
+
+            // Flush immediately if buffer is full
+            if (telemetryBuffer.length >= BUFFER_MAX_SIZE) {
+                console.log(`[mqtt] Buffer max size (${BUFFER_MAX_SIZE}) reached. Flushing immediately.`);
+                flushTelemetryBuffer();
             }
         }
     });
+
+    // Start the periodic flush timer
+    setInterval(() => {
+        flushTelemetryBuffer();
+    }, BATCH_INTERVAL_MS);
 
     return client;
 }

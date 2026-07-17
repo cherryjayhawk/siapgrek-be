@@ -1,0 +1,18 @@
+[
+  {
+    "question": "Berapa suhu lingkungan saat ini dan apakah aman untuk anggrek saya?",
+    "ground_truth": "Suhu lingkungan saat ini adalah 28°C. Suhu ini masih aman untuk anggrek karena berada dalam rentang optimal."
+  },
+  {
+    "question": "Penyakit apa yang sering membuat daun anggrek menghitam?",
+    "ground_truth": "Penyakit yang sering membuat daun anggrek menghitam adalah busuk daun. Penyebab utamanya adalah infeksi jamur atau bakteri akibat kelembapan berlebih."
+  },
+  {
+    "question": "Bagaimana aturan penyiraman yang baik untuk anggrek Cattleya?",
+    "ground_truth": "Anggrek Cattleya sebaiknya disiram ketika media tanam sudah mulai mengering. Penyiraman yang terlalu sering dapat menyebabkan akar busuk."
+  },
+  {
+    "question": "Apakah akan turun hujan besok berdasarkan prakiraan cuaca? Jika ya, apakah saya perlu menyiram anggrek di luar?",
+    "ground_truth": "Berdasarkan prakiraan cuaca, besok kemungkinan akan turun hujan. Sebaiknya hindari menyiram anggrek yang diletakkan di luar ruangan agar tidak terjadi kelebihan air pada media tanam."
+  }
+]
