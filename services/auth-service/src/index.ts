@@ -23,6 +23,25 @@ const app = new Hono();
 // ------------------------------------
 app.use("*", logger());
 
+app.use("/api/auth/*", async (c, next) => {
+    console.log("========== AUTH REQUEST ==========");
+    console.log("Method:", c.req.method);
+    console.log("URL:", c.req.url);
+    console.log("Origin:", c.req.header("origin"));
+    console.log("Host:", c.req.header("host"));
+    console.log(
+        "X-Forwarded-Host:",
+        c.req.header("x-forwarded-host"),
+    );
+    console.log(
+        "X-Forwarded-Proto:",
+        c.req.header("x-forwarded-proto"),
+    );
+    console.log("==================================");
+
+    await next();
+});
+
 app.use(
     "/api/auth/*",
     cors({
