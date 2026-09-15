@@ -40,14 +40,14 @@ SiapGrek is built using a robust, polyglot microservices architecture orchestrat
 ### Prerequisites
 * Docker and Docker Compose
 * Node.js & Bun (for local development)
-* Go (optional, for Analytic service dev)
-* Python 3.10+ (optional, for Intelligent service dev)
+* Go (for Analytic service dev)
+* Python 3.12+ (for Intelligent service dev)
 
 ### Installation & Setup
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/siapgrek.git
+   git clone https://github.com/cherryjayhawk/siapgrek-be.git siapgrek
    cd siapgrek
    ```
 
